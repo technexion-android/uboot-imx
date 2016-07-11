@@ -176,7 +176,10 @@
 	"fdtfile=undefined\0" \
 	"fdt_high=0xffffffff\0" \
 	"initrd_high=0xffffffff\0" \
+	"bootramdisk=uramdisk.img\0" \
+	"initrdaddr=0x13000000\0" \
 	"fdt_addr=0x18000000\0" \
+	"bootargs_base=console=ttymxc0,115200\0" \
 	"boot_fdt=try\0" \
 	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
 	"mmcpart=1\0" \
@@ -189,7 +192,7 @@
 			"setenv mmcroot /dev/sda2 rootwait rw; " \
 		"fi\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
-		"root=${mmcroot}; run videoargs\0" \
+		"root=${mmcroot}; ${bootargs_base}; run videoargs\0" \
 	"fdtfile_autodetect=on\0" \
 	"bootdev_autodetect=on\0" \
 	"display_autodetect=on\0" \
@@ -230,6 +233,7 @@
 	"bootscript=echo Running bootscript from ${bootmedia} ...; " \
 		"source\0" \
 	"loadimage=fatload ${bootmedia} ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
+	"loadramdisk=fatload mmc ${mmcdev}:${mmcpart} ${initrdaddr} ${bootramdisk}\0" \
 	"setfdt=setenv fdtfile ${som}_${baseboard}.dtb\0" \
 	"loadfdt=fatload ${bootmedia} ${mmcdev}:${mmcpart} ${fdt_addr} ${fdtfile}\0" \
 	"mmcboot=echo Booting from ${bootmedia} ...; " \
@@ -274,9 +278,15 @@
 		   "fi;" \
 		   "if run loadbootscript; then " \
 			   "run bootscript; " \
-		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
+		   "fi;" \
+		   "if run loadramdisk; then " \
+			   "setenv rootdevice ${ramdisk_dev}; " \
+			   "setenv mmcboot \'run mmcargs; bootz ${loadaddr} ${initrdaddr} ${fdt_addr}\'; " \
+		   "fi;" \
+		   "if run loadimage; then " \
+			   "run setfdt; " \
+			   "run loadfdt; " \
+			   "run mmcboot; " \
 			   "else " \
 				   "echo WARN: Cannot load kernel from boot media; " \
 			   "fi; " \
