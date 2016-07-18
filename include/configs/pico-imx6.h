@@ -299,4 +299,9 @@
 #define CONFIG_CMD_CACHE
 #endif
 
+#ifdef CONFIG_ANDROID_SUPPORT
+#define CONFIG_OF_LOAD_MANUALLY
+#include "pico-imx6-android.h"
+#endif
+
 #endif			       /* __CONFIG_H * */
