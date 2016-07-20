@@ -337,4 +337,9 @@
 #define CONFIG_CMD_CACHE
 #endif
 
+#ifdef CONFIG_ANDROID_SUPPORT
+#define CONFIG_OF_LOAD_MANUALLY
+#include "edm-cf-imx6_android.h"
+#endif
+
 #endif			       /* __CONFIG_H * */
