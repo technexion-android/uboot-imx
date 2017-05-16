@@ -82,10 +82,10 @@
 			"setenv mmcroot /dev/mmcblk0p2 rootwait rw; " \
 		"fi\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
-		"root=${mmcroot}; ${bootargs_base}; run videoargs\0" \
+		"${bootargs_base}; run videoargs\0" \
 	"fdtfile_autodetect=on\0" \
 	"bootdev_autodetect=on\0" \
-	"display_autodetect=on\0" \
+	"display_autodetect=off\0" \
 	"videoargs=" \
 		"if test ${display_autodetect} = off; then " \
 			"echo Applying custom display setting...;" \
