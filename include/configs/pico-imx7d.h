@@ -468,6 +468,6 @@
 #endif
 
 #if defined(CONFIG_ANDROID_SUPPORT)
-#include "mx7dsabresdandroid.h"
+#include "pico-imx7-android.h"
 #endif
 #endif	/* __CONFIG_H */
