@@ -71,7 +71,7 @@
         "else " \
             "setenv mmcroot /dev/mmcblk0p2 rootwait rw; " \
         "fi\0" \
-    "mmcargs=setenv bootargs console=${console},${baudrate} androidboot.console=ttymxc4 consoleblank=0 vmalloc=256M init=/init video=mxcfb0:dev=lcd,800x480@60,if=RGB24,bpp=16 androidboot.hardware=freescale \0 " \
+    "mmcargs=setenv bootargs console=${console},${baudrate} androidboot.console=ttymxc4\0 " \
     "loadbootscript=" \
         "fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
     "bootscript=echo Running bootscript from mmc ...; " \
