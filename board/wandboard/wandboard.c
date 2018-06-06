@@ -32,6 +32,12 @@
 #include <i2c.h>
 #include <power/pmic.h>
 #include <power/pfuze100_pmic.h>
+#ifdef CONFIG_FSL_FASTBOOT
+#include <fsl_fastboot.h>
+#ifdef CONFIG_ANDROID_RECOVERY
+#include <recovery.h>
+#endif
+#endif /*CONFIG_FSL_FASTBOOT*/
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -672,3 +678,40 @@ int checkboard(void)
 
 	return 0;
 }
+
+#ifdef CONFIG_FSL_FASTBOOT
+#ifdef CONFIG_ANDROID_RECOVERY
+
+#define GPIO_VOL_DN_KEY IMX_GPIO_NR(1, 5)
+
+/*
+iomux_v3_cfg_t const recovery_key_pads[] = {
+	(MX6_PAD_GPIO_5__GPIO1_IO05 | MUX_PAD_CTRL(NO_PAD_CTRL)),
+};
+*/
+
+int is_recovery_key_pressing(void)
+{
+	int button_pressed = 0;
+
+	/* Check Recovery Combo Button press or not. */
+	/*
+	imx_iomux_v3_setup_multiple_pads(recovery_key_pads,
+			ARRAY_SIZE(recovery_key_pads));
+
+	gpio_request(GPIO_VOL_DN_KEY, "volume_dn_key");
+	gpio_direction_input(GPIO_VOL_DN_KEY);
+
+	if (gpio_get_value(GPIO_VOL_DN_KEY) == 0) { 
+		// VOL_DN key is low assert 
+		button_pressed = 1;
+		printf("Recovery key pressed\n");
+	}
+	*/
+
+	return  button_pressed;
+}
+
+#endif /*CONFIG_ANDROID_RECOVERY*/
+
+#endif /*CONFIG_FSL_FASTBOOT*/
