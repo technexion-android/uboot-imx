@@ -212,7 +212,10 @@
 #define PHYS_SDRAM_SIZE_1GB		SZ_1G /* 1GB DDR */
 #define PHYS_SDRAM_SIZE_2GB		SZ_2G /* 2GB DDR */
 #define PHYS_SDRAM_SIZE_3GB		0xC0000000 /* 3GB DDR */
-#define PHYS_SDRAM_SIZE_4GB		0x100000000 /* 4GB DDR */
+/* 4GB DDR
+#define PHYS_SDRAM_SIZE_4GB		0x100000000
+*/
+#define PHYS_SDRAM_SIZE_4GB		0xC0000000 /* 3GB DDR */
 #define CONFIG_NR_DRAM_BANKS		1
 
 #define CONFIG_BAUDRATE			115200
@@ -270,7 +273,6 @@
 
 #define CONFIG_MXC_OCOTP
 #define CONFIG_CMD_FUSE
-#define CONFIG_CMD_HDMIDETECT /* for hdmi panel detection */
 
 /* I2C Configs */
 #define CONFIG_SYS_I2C_SPEED		  100000
@@ -324,6 +326,6 @@
 #endif
 
 #if defined(CONFIG_ANDROID_SUPPORT)
-#include "imx8mq_evk_android.h"
+#include "pico-8m_android.h"
 #endif
 #endif
