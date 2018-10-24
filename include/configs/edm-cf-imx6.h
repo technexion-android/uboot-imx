@@ -6,8 +6,8 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#ifndef __PICO_IMX6_CONFIG_H
-#define __PICO_IMX6_CONFIG_H
+#ifndef __EDM_IMX6_CONFIG_H
+#define __EDM_IMX6_CONFIG_H
 
 #include "mx6_common.h"
 #include "imx6_spl.h"
@@ -52,8 +52,8 @@
 #define CONFIG_SYS_I2C_MXC_I2C1         /* enable I2C bus 1 */
 #define CONFIG_SYS_I2C_MXC_I2C2         /* enable I2C bus 2 */
 #define CONFIG_SYS_I2C_MXC_I2C3         /* enable I2C bus 3 */
-#define CONFIG_SYS_I2C_SPEED		100000
-#define CONFIG_I2C_PMIC			1
+#define CONFIG_SYS_I2C_SPEED			100000
+#define CONFIG_I2C_PMIC					2
 
 /* PMIC */
 #define CONFIG_POWER
@@ -204,7 +204,7 @@
 	"run mmcargs; " \
 
 #if defined(CONFIG_ANDROID_SUPPORT)
-#include "pico-imx6_common.h"
+#include "edm-cf-imx6_common.h"
 #endif
 
-#endif			       /* __PICO_IMX6_CONFIG_H */
+#endif			       /* __EDM_IMX6_CONFIG_H */
