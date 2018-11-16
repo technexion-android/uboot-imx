@@ -327,8 +327,10 @@ static void setup_iomux_fec(void)
 #endif
 
 static iomux_v3_cfg_t const bcm4339_pads[] = {
-        MX7D_PAD_ECSPI1_SCLK__GPIO4_IO16  | MUX_PAD_CTRL(NO_PAD_CTRL), //wifi reset
-        MX7D_PAD_ECSPI1_MISO__GPIO4_IO18  | MUX_PAD_CTRL(NO_PAD_CTRL), //bt reset
+        MX7D_PAD_EPDC_BDR1__GPIO2_IO29 | MUX_PAD_CTRL(NO_PAD_CTRL), //QCA9377 Power
+        MX7D_PAD_ECSPI1_SCLK__GPIO4_IO16 | MUX_PAD_CTRL(NO_PAD_CTRL), //wifi ON
+        MX7D_PAD_ECSPI1_MOSI__GPIO4_IO17 | MUX_PAD_CTRL(NO_PAD_CTRL), //Bluetooth ON
+        MX7D_PAD_ECSPI1_MISO__GPIO4_IO18 | MUX_PAD_CTRL(NO_PAD_CTRL), //SDIO reset
 };
 
 static iomux_v3_cfg_t const ccm_clko_pads[] = {
@@ -542,8 +544,20 @@ int board_early_init_f(void)
 	return 0;
 }
 
-#define BT_RST_GPIO		IMX_GPIO_NR(4, 18)
-#define WIFI_RST_GPIO	IMX_GPIO_NR(4, 16)
+/*
+ * Do not overwrite the console
+ * Use always serial for U-Boot console
+ */
+int overwrite_console(void)
+{
+	return 1;
+}
+
+
+#define WIFI_RST_GPIO		IMX_GPIO_NR(4, 16)
+#define BT_RST_GPIO			IMX_GPIO_NR(4, 17)
+#define SDIO_RST_GPIO		IMX_GPIO_NR(4, 18)
+#define QCA9377_POWER_GPIO	IMX_GPIO_NR(2, 29)
 
 int board_init(void)
 {
@@ -557,9 +571,14 @@ int board_init(void)
 	//pico-imx7 custom initialize
 	imx_iomux_v3_setup_multiple_pads(bcm4339_pads, ARRAY_SIZE(bcm4339_pads));
 	imx_iomux_v3_setup_multiple_pads(ccm_clko_pads, ARRAY_SIZE(ccm_clko_pads));
-
-	gpio_direction_output(BT_RST_GPIO, 1);
+	
+	gpio_direction_output(BT_RST_GPIO, 0);
+	gpio_direction_output(WIFI_RST_GPIO, 0);
+	gpio_direction_output(SDIO_RST_GPIO, 0);	
+	gpio_direction_output(QCA9377_POWER_GPIO, 1);
 	udelay(500);
+	gpio_direction_output(SDIO_RST_GPIO, 1);
+	gpio_direction_output(BT_RST_GPIO, 1);
 	gpio_direction_output(WIFI_RST_GPIO, 1);
 	udelay(500);
 	clock_set_src(IPP_DO_CLKO2,OSC_32K_CLK);
@@ -685,3 +704,39 @@ int board_ehci_hcd_init(int port)
 }
 #endif
 
+#ifdef CONFIG_FSL_FASTBOOT
+#ifdef CONFIG_ANDROID_RECOVERY
+
+#define GPIO_VOL_DN_KEY IMX_GPIO_NR(1, 5)
+
+/*
+iomux_v3_cfg_t const recovery_key_pads[] = {
+	(MX6_PAD_GPIO_5__GPIO1_IO05 | MUX_PAD_CTRL(NO_PAD_CTRL)),
+};
+*/
+
+int is_recovery_key_pressing(void)
+{
+	int button_pressed = 0;
+
+	/* Check Recovery Combo Button press or not. */
+	/*
+	imx_iomux_v3_setup_multiple_pads(recovery_key_pads,
+			ARRAY_SIZE(recovery_key_pads));
+
+	gpio_request(GPIO_VOL_DN_KEY, "volume_dn_key");
+	gpio_direction_input(GPIO_VOL_DN_KEY);
+
+	if (gpio_get_value(GPIO_VOL_DN_KEY) == 0) { 
+		// VOL_DN key is low assert 
+		button_pressed = 1;
+		printf("Recovery key pressed\n");
+	}
+	*/
+
+	return  button_pressed;
+}
+
+#endif /*CONFIG_ANDROID_RECOVERY*/
+
+#endif /*CONFIG_FSL_FASTBOOT*/

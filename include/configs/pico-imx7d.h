@@ -93,7 +93,9 @@
 #undef CONFIG_BOOTM_RTEMS
 
 /* I2C configs */
+/*
 #define CONFIG_CMD_I2C
+*/
 #define CONFIG_SYS_I2C
 #define CONFIG_SYS_I2C_MXC
 #define CONFIG_SYS_I2C_MXC_I2C1                /* enable I2C bus 1 */
@@ -321,8 +323,13 @@
 #error "EPDC Pins conflicts QSPI, Either EPDC or QSPI can be enabled!"
 #endif
 
-#if defined(CONFIG_ANDROID_THINGS_SUPPORT)
+#if defined(CONFIG_ANDROID_SUPPORT)
+#include "pico-imx7dandroid.h"
+#elif defined(CONFIG_ANDROID_THINGS_SUPPORT)
 #include "pico-imx7dandroidthings.h"
+#else
+#define CONFIG_USBD_HS
+#define CONFIG_USB_FUNCTION_MASS_STORAGE
 #endif
 
 #define PRODUCT_NAME "imx7d"
