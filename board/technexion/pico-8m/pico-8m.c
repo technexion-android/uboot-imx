@@ -137,8 +137,12 @@ static iomux_v3_cfg_t const fec1_pwr_pads[] = {
 };
 
 #define WL_REG_ON_PAD IMX_GPIO_NR(3, 24)
+#define WL_SDIO_RST_PAD IMX_GPIO_NR(3, 25)
+#define WL_POWER_PAD IMX_GPIO_NR(1, 10)
 static iomux_v3_cfg_t const wl_reg_on_pads[] = {
+	IMX8MQ_PAD_SAI5_MCLK__GPIO3_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL),
 	IMX8MQ_PAD_SAI5_RXD3__GPIO3_IO24 | MUX_PAD_CTRL(NO_PAD_CTRL),
+	IMX8MQ_PAD_GPIO1_IO10__GPIO1_IO10 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
 #define BT_ON_PAD IMX_GPIO_NR(3, 21)
@@ -296,6 +300,14 @@ void setup_wifi(void)
 	imx_iomux_v3_setup_multiple_pads(wl_reg_on_pads, ARRAY_SIZE(wl_reg_on_pads));
 	imx_iomux_v3_setup_multiple_pads(bt_on_pads, ARRAY_SIZE(bt_on_pads));
 
+	gpio_request(WL_POWER_PAD, "wl_power_on");
+	gpio_direction_output(WL_POWER_PAD, 0);
+	gpio_set_value(WL_POWER_PAD, 0);
+	
+	gpio_request(WL_SDIO_RST_PAD, "wl_sdio_rst");
+	gpio_direction_output(WL_SDIO_RST_PAD, 0);
+	gpio_set_value(WL_SDIO_RST_PAD, 0);
+	
 	gpio_request(WL_REG_ON_PAD, "wl_reg_on");
 	gpio_direction_output(WL_REG_ON_PAD, 0);
 	gpio_set_value(WL_REG_ON_PAD, 0);
@@ -303,6 +315,12 @@ void setup_wifi(void)
 	gpio_request(BT_ON_PAD, "bt_on");
 	gpio_direction_output(BT_ON_PAD, 0);
 	gpio_set_value(BT_ON_PAD, 0);
+	
+	gpio_set_value(WL_POWER_PAD, 1);
+	udelay(500);
+	gpio_set_value(WL_SDIO_RST_PAD, 1);
+	gpio_set_value(WL_REG_ON_PAD, 1);	
+	gpio_set_value(BT_ON_PAD, 1);
 }
 
 
@@ -388,7 +406,7 @@ int board_late_init(void)
 	}
 	else if (gpio_get_value(DDR_DET_1) && !gpio_get_value(DDR_DET_2) && gpio_get_value(DDR_DET_3)) {
 		/* LPDDR4 1GB */
-		setenv("cma_size", "768M");
+		setenv("cma_size", "256M");
 	}
 	else
 		puts("Unknown DDR type!!!\n");

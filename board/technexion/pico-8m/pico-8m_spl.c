@@ -67,8 +67,7 @@ void spl_dram_init(void)
 		puts("dram_init: LPDDR4 1GB\n");
 		ddr_init_1gb();
 		writel(0x1, M4_BOOTROM_BASE_ADDR);
-	}	
-
+	}
 	else
 		puts("Unknown DDR type!!!\n");
 }

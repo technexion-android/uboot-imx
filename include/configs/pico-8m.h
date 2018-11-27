@@ -75,6 +75,7 @@
 #define CONFIG_OF_BOARD_SETUP
 
 #undef CONFIG_CMD_EXPORTENV
+#undef CONFIG_CMD_IMPORTENV
 #undef CONFIG_CMD_IMLS
 
 #undef CONFIG_CMD_CRC32
@@ -101,7 +102,9 @@
 #define CONFIG_PHY_ATHEROS
 #endif
 
-#define PICO_8M_CMA_SIZE                 768M
+#define PICO_8M_CMA_SIZE			768M
+#define SZ_4G						0xF0000000
+
 
 #define CONFIG_MFG_ENV_SETTINGS \
 	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
