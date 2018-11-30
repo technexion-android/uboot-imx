@@ -391,6 +391,7 @@ dtb-$(CONFIG_ARCH_IMX8M) += fsl-imx8mq-evk.dtb \
 		fsl-imx8mq-ddr4-arm2.dtb \
 		pico-8m.dtb \
 		pico_8m.dtb \
+		pico_8m_lcd.dtb \
 		wand-pi-8m.dtb
 
 dtb-$(CONFIG_ARCH_IMX8) += fsl-imx8qm-lpddr4-arm2.dtb \

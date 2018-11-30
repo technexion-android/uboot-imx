@@ -1,0 +1,12 @@
+if TARGET_PICO_8M_LCD
+
+config SYS_BOARD
+	default "pico-8m-lcd"
+
+config SYS_VENDOR
+	default "technexion"
+
+config SYS_CONFIG_NAME
+	default "pico-8m-lcd"
+
+endif
