@@ -15,7 +15,7 @@
 #include <fdt_support.h>
 #include <asm/processor.h>
 #include <asm/io.h>
-#include <linux/errno.h>
+#include <asm/errno.h>
 #include <asm/ppc4xx-gpio.h>
 #include <flash.h>
 
@@ -246,17 +246,8 @@ int last_stage_init(void)
 	/* setup Gbit PHYs */
 	puts("TRANS: ");
 	puts(str_phys);
-	int retval;
-	struct mii_dev *mdiodev = mdio_alloc();
-	if (!mdiodev)
-		return -ENOMEM;
-	strncpy(mdiodev->name, CONFIG_SYS_GBIT_MII_BUSNAME, MDIO_NAME_LEN);
-	mdiodev->read = bb_miiphy_read;
-	mdiodev->write = bb_miiphy_write;
-
-	retval = mdio_register(mdiodev);
-	if (retval < 0)
-		return retval;
+	miiphy_register(CONFIG_SYS_GBIT_MII_BUSNAME,
+		bb_miiphy_read, bb_miiphy_write);
 
 	for (k = 0; k < 32; ++k) {
 		configure_gbit_phy(CONFIG_SYS_GBIT_MII_BUSNAME, k);
@@ -264,16 +255,8 @@ int last_stage_init(void)
 		putc(slash[k % 8]);
 	}
 
-	mdiodev = mdio_alloc();
-	if (!mdiodev)
-		return -ENOMEM;
-	strncpy(mdiodev->name, CONFIG_SYS_GBIT_MII1_BUSNAME, MDIO_NAME_LEN);
-	mdiodev->read = bb_miiphy_read;
-	mdiodev->write = bb_miiphy_write;
-
-	retval = mdio_register(mdiodev);
-	if (retval < 0)
-		return retval;
+	miiphy_register(CONFIG_SYS_GBIT_MII1_BUSNAME,
+		bb_miiphy_read, bb_miiphy_write);
 
 	for (k = 0; k < 32; ++k) {
 		configure_gbit_phy(CONFIG_SYS_GBIT_MII1_BUSNAME, k);

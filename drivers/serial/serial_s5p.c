@@ -14,10 +14,9 @@
 #include <fdtdec.h>
 #include <linux/compiler.h>
 #include <asm/io.h>
-#include <asm/arch/clk.h>
 #include <asm/arch/uart.h>
+#include <asm/arch/clk.h>
 #include <serial.h>
-#include <clk.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -60,20 +59,11 @@ static const int udivslot[] = {
 	0xffdf,
 };
 
-static void __maybe_unused s5p_serial_init(struct s5p_uart *uart)
+int s5p_serial_setbrg(struct udevice *dev, int baudrate)
 {
-	/* enable FIFOs, auto clear Rx FIFO */
-	writel(0x3, &uart->ufcon);
-	writel(0, &uart->umcon);
-	/* 8N1 */
-	writel(0x3, &uart->ulcon);
-	/* No interrupts, no DMA, pure polling */
-	writel(0x245, &uart->ucon);
-}
-
-static void __maybe_unused s5p_serial_baud(struct s5p_uart *uart, uint uclk,
-					   int baudrate)
-{
+	struct s5p_serial_platdata *plat = dev->platdata;
+	struct s5p_uart *const uart = plat->reg;
+	u32 uclk = get_uart_clk(plat->port_id);
 	u32 val;
 
 	val = uclk / baudrate;
@@ -84,28 +74,6 @@ static void __maybe_unused s5p_serial_baud(struct s5p_uart *uart, uint uclk,
 		writew(udivslot[val % 16], &uart->rest.slot);
 	else
 		writeb(val % 16, &uart->rest.value);
-}
-
-#ifndef CONFIG_SPL_BUILD
-int s5p_serial_setbrg(struct udevice *dev, int baudrate)
-{
-	struct s5p_serial_platdata *plat = dev->platdata;
-	struct s5p_uart *const uart = plat->reg;
-	u32 uclk;
-
-#ifdef CONFIG_CLK_EXYNOS
-	struct clk clk;
-	u32 ret;
-
-	ret = clk_get_by_index(dev, 1, &clk);
-	if (ret < 0)
-		return ret;
-	uclk = clk_get_rate(&clk);
-#else
-	uclk = get_uart_clk(plat->port_id);
-#endif
-
-	s5p_serial_baud(uart, uclk, baudrate);
 
 	return 0;
 }
@@ -115,7 +83,13 @@ static int s5p_serial_probe(struct udevice *dev)
 	struct s5p_serial_platdata *plat = dev->platdata;
 	struct s5p_uart *const uart = plat->reg;
 
-	s5p_serial_init(uart);
+	/* enable FIFOs, auto clear Rx FIFO */
+	writel(0x3, &uart->ufcon);
+	writel(0, &uart->umcon);
+	/* 8N1 */
+	writel(0x3, &uart->ulcon);
+	/* No interrupts, no DMA, pure polling */
+	writel(0x245, &uart->ucon);
 
 	return 0;
 }
@@ -182,13 +156,13 @@ static int s5p_serial_ofdata_to_platdata(struct udevice *dev)
 	struct s5p_serial_platdata *plat = dev->platdata;
 	fdt_addr_t addr;
 
-	addr = dev_get_addr(dev);
+	addr = fdtdec_get_addr(gd->fdt_blob, dev->of_offset, "reg");
 	if (addr == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
 	plat->reg = (struct s5p_uart *)addr;
-	plat->port_id = fdtdec_get_int(gd->fdt_blob, dev_of_offset(dev),
-					"id", dev->seq);
+	plat->port_id = fdtdec_get_int(gd->fdt_blob, dev->of_offset, "id", -1);
+
 	return 0;
 }
 
@@ -214,29 +188,3 @@ U_BOOT_DRIVER(serial_s5p) = {
 	.ops	= &s5p_serial_ops,
 	.flags = DM_FLAG_PRE_RELOC,
 };
-#endif
-
-#ifdef CONFIG_DEBUG_UART_S5P
-
-#include <debug_uart.h>
-
-static inline void _debug_uart_init(void)
-{
-	struct s5p_uart *uart = (struct s5p_uart *)CONFIG_DEBUG_UART_BASE;
-
-	s5p_serial_init(uart);
-	s5p_serial_baud(uart, CONFIG_DEBUG_UART_CLOCK, CONFIG_BAUDRATE);
-}
-
-static inline void _debug_uart_putc(int ch)
-{
-	struct s5p_uart *uart = (struct s5p_uart *)CONFIG_DEBUG_UART_BASE;
-
-	while (readl(&uart->ufstat) & TX_FIFO_FULL);
-
-	writeb(ch, &uart->utxh);
-}
-
-DEBUG_UART_FUNCS
-
-#endif

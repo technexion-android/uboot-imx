@@ -26,6 +26,9 @@
 /* CPU / AMBA BUS configuration */
 #define CONFIG_SYS_CLK_FREQ	96000000	/* 96MHz */
 
+/* Number of SPARC register windows */
+#define CONFIG_SYS_SPARC_NWINDOWS 8
+
 /* Define this is the GR-2S60-MEZZ mezzanine is available and you
  * want to use the USB and GRETH functionality of the board
  */
@@ -43,23 +46,36 @@
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200, 230400 }
 
 /* Partitions */
+#define CONFIG_DOS_PARTITION
+#define CONFIG_MAC_PARTITION
+#define CONFIG_ISO_PARTITION
 
 /*
  * Supported commands
  */
+#include <config_cmd_default.h>
+
 #define CONFIG_CMD_REGINFO
+#define CONFIG_CMD_AMBAPP
+#define CONFIG_CMD_PING
 #define CONFIG_CMD_DIAG
 #define CONFIG_CMD_IRQ
 
 /* USB support */
 #if USE_GRUSB
 #define CONFIG_USB_UHCI
+#define CONFIG_CMD_FAT
+#define CONFIG_CMD_EXT2
+#define CONFIG_CMD_USB
+#define CONFIG_USB_STORAGE
 /* Enable needed helper functions */
+#define CONFIG_SYS_STDIO_DEREGISTER	/* needs stdio_deregister */
 #endif
 
 /*
  * Autobooting
  */
+#define CONFIG_BOOTDELAY	5	/* autoboot after 5 seconds */
 
 #define CONFIG_PREBOOT	"echo;"	\
 	"echo Type \"run flash_nfs\" to mount root filesystem over NFS;" \
@@ -146,6 +162,7 @@
  *               0xFF000000 for 16 MB
  *               0xFF800000 for  8 MB
  */
+/*#define CONFIG_SYS_NO_FLASH		1*/
 #define CONFIG_SYS_FLASH_BASE		0x00000000
 #define CONFIG_SYS_FLASH_SIZE		0x00400000	/* FPGA Bit file is in top of FLASH, we only ues the bottom 4Mb */
 
@@ -242,8 +259,17 @@
 
 /* USE GRETH Ethernet Driver */
 #define CONFIG_GRETH	1
+
+/* Default GRETH Ethernet HARDWARE address */
+#define GRETH_HWADDR_0 0x00
+#define GRETH_HWADDR_1 0x00
+#define GRETH_HWADDR_2 0x7a
+#define GRETH_HWADDR_3 0xcc
+#define GRETH_HWADDR_4 0x00
+#define GRETH_HWADDR_5 0x13
 #endif
 
+#define CONFIG_ETHADDR   00:00:7a:cc:00:13
 #define CONFIG_PHY_ADDR	 0x00
 
 /*
@@ -273,31 +299,33 @@
 
 /***** Gaisler GRLIB IP-Cores Config ********/
 
-#define CONFIG_SYS_GRLIB_SDRAM    0
+/* AMBA Plug & Play info display on startup */
+/*#define CONFIG_SYS_AMBAPP_PRINT_ON_STARTUP*/
 
-/* No SDRAM Configuration */
-#undef CONFIG_SYS_GRLIB_GAISLER_SDCTRL1
+#define CONFIG_SYS_GRLIB_SDRAM    0
 
 /* See, GRLIB Docs (grip.pdf) on how to set up
  * These the memory controller registers.
  */
-#define CONFIG_SYS_GRLIB_ESA_MCTRL1
-#define CONFIG_SYS_GRLIB_ESA_MCTRL1_CFG1  (0x10f800ff | (1<<11))
-#define CONFIG_SYS_GRLIB_ESA_MCTRL1_CFG2  0x00000000
-#define CONFIG_SYS_GRLIB_ESA_MCTRL1_CFG3  0x00000000
+#define CONFIG_SYS_GRLIB_MEMCFG1  (0x10f800ff | (1<<11))
+#define CONFIG_SYS_GRLIB_MEMCFG2  0x00000000
+#define CONFIG_SYS_GRLIB_MEMCFG3  0x00000000
 
-/* GRLIB FT-MCTRL configuration */
-#define CONFIG_SYS_GRLIB_GAISLER_FTMCTRL1
-#define CONFIG_SYS_GRLIB_GAISLER_FTMCTRL1_CFG1  (0x10f800ff | (1<<11))
-#define CONFIG_SYS_GRLIB_GAISLER_FTMCTRL1_CFG2  0x00000000
-#define CONFIG_SYS_GRLIB_GAISLER_FTMCTRL1_CFG3  0x00000000
+#define CONFIG_SYS_GRLIB_FT_MEMCFG1  (0x10f800ff | (1<<11))
+#define CONFIG_SYS_GRLIB_FT_MEMCFG2  0x00000000
+#define CONFIG_SYS_GRLIB_FT_MEMCFG3  0x00000000
 
-/* DDR controller */
-#define CONFIG_SYS_GRLIB_GAISLER_DDRSPA1
-#define CONFIG_SYS_GRLIB_GAISLER_DDRSPA1_CTRL  0xa900830a
+#define CONFIG_SYS_GRLIB_DDR_CFG  0xa900830a
 
-/* no DDR2 Controller */
-#undef CONFIG_SYS_GRLIB_GAISLER_DDR2SPA1
+#define CONFIG_SYS_GRLIB_DDR2_CFG1 0x00000000
+#define CONFIG_SYS_GRLIB_DDR2_CFG3 0x00000000
+
+/* Calculate scaler register value from default baudrate */
+#define CONFIG_SYS_GRLIB_APBUART_SCALER \
+ ((((CONFIG_SYS_CLK_FREQ*10)/(CONFIG_BAUDRATE*8))-5)/10)
+
+/* Identification string */
+#define CONFIG_IDENT_STRING "GAISLER LEON3 EP2S60"
 
 /* default kernel command line */
 #define CONFIG_DEFAULT_KERNEL_COMMAND_LINE "console=ttyS0,38400\0\0"

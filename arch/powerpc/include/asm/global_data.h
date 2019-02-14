@@ -15,9 +15,6 @@
 struct arch_global_data {
 #if defined(CONFIG_FSL_ESDHC)
 	u32 sdhc_clk;
-#if defined(CONFIG_FSL_ESDHC_ADAPTER_IDENT)
-	u8 sdhc_adapter;
-#endif
 #endif
 #if defined(CONFIG_8xx)
 	unsigned long brg_clk;
@@ -96,7 +93,7 @@ struct arch_global_data {
 	unsigned long arbiter_event_attributes;
 	unsigned long arbiter_event_address;
 #endif
-#if defined(CONFIG_CPM2)
+#if defined(CONFIG_SYS_ALLOC_DPRAM) || defined(CONFIG_CPM2)
 	unsigned int dp_alloc_base;
 	unsigned int dp_alloc_top;
 #endif

@@ -6,6 +6,9 @@ config SYS_CPU
 config SYS_VENDOR
 	default "barco"
 
+config SYS_SOC
+	default "mx6"
+
 config SYS_BOARD
 	default "platinum"
 
@@ -21,6 +24,9 @@ config SYS_CPU
 
 config SYS_VENDOR
 	default "barco"
+
+config SYS_SOC
+	default "mx6"
 
 config SYS_BOARD
 	default "platinum"

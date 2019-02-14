@@ -71,12 +71,11 @@ idt_ptr:
 	 */
 gdt_ptr:
 	.word	0x1f		/* limit (31 bytes = 4 GDT entries - 1) */
-	.long	BOOT_SEG + gdt_rom	/* base */
+	.long	BOOT_SEG + gdt	/* base */
 
 	/* Some CPUs are picky about GDT alignment... */
 	.align	16
-.globl gdt_rom
-gdt_rom:
+gdt:
 	/*
 	 * The GDT table ...
 	 *

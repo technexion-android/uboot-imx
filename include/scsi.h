@@ -132,7 +132,6 @@ typedef struct SCSI_cmd_block{
 #define SCSI_MED_REMOVL	0x1E		/* Prevent/Allow medium Removal (O) */
 #define SCSI_READ6		0x08		/* Read 6-byte (MANDATORY) */
 #define SCSI_READ10		0x28		/* Read 10-byte (MANDATORY) */
-#define SCSI_READ16	0x48
 #define SCSI_RD_CAPAC	0x25		/* Read Capacity (MANDATORY) */
 #define SCSI_RD_CAPAC10	SCSI_RD_CAPAC	/* Read Capacity (10) */
 #define SCSI_RD_CAPAC16	0x9e		/* Read Capacity (16) */
@@ -166,32 +165,17 @@ typedef struct SCSI_cmd_block{
 void scsi_print_error(ccb *pccb);
 int scsi_exec(ccb *pccb);
 void scsi_bus_reset(void);
-#if !defined(CONFIG_DM_SCSI)
 void scsi_low_level_init(int busdevfunc);
-#else
-void scsi_low_level_init(int busdevfunc, struct udevice *dev);
-#endif
+
 
 /***************************************************************************
  * functions residing inside cmd_scsi.c
  */
 void scsi_init(void);
-int scsi_scan(int mode);
+void scsi_scan(int mode);
 
-#if defined(CONFIG_DM_SCSI)
-/**
- * struct scsi_platdata - stores information about SCSI controller
- *
- * @base: Controller base address
- * @max_lun: Maximum number of logical units
- * @max_id: Maximum number of target ids
- */
-struct scsi_platdata {
-	unsigned long base;
-	unsigned long max_lun;
-	unsigned long max_id;
-};
-#endif
+/** @return the number of scsi disks */
+int scsi_get_disk_count(void);
 
 #define SCSI_IDENTIFY					0xC0  /* not used */
 

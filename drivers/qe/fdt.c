@@ -10,7 +10,7 @@
 #include <common.h>
 #include <libfdt.h>
 #include <fdt_support.h>
-#include <fsl_qe.h>
+#include "qe.h"
 
 #ifdef CONFIG_QE
 DECLARE_GLOBAL_DATA_PTR;

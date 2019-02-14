@@ -1,5 +1,5 @@
 /*
- * U-Boot - delay.h Routines for introducing delays
+ * U-boot - delay.h Routines for introducing delays
  *
  * Copyright (c) 2005-2007 Analog Devices Inc.
  *
@@ -16,7 +16,7 @@
  * Delay routines, using a pre-computed "loops_per_second" value.
  */
 
-static __inline__ void __delay(unsigned long loops)
+extern __inline__ void __delay(unsigned long loops)
 {
 	__asm__ __volatile__("1:\t%0 += -1;\n\t"
 			     "cc = %0 == 0;\n\t"
@@ -31,7 +31,7 @@ static __inline__ void __delay(unsigned long loops)
  * first constant multiplications gets optimized away if the delay is
  * a constant)
  */
-static __inline__ void __udelay(unsigned long usecs)
+extern __inline__ void __udelay(unsigned long usecs)
 {
 	__delay(usecs);
 }

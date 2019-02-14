@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Technexion Ltd.
+ * Copyright (C) 2017 Technexion Ltd.
  *
  * Author: Richard Hu <richard.hu@technexion.com>
  *
@@ -9,7 +9,7 @@
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/mx7-pins.h>
-#include <linux/errno.h>
+#include <asm/errno.h>
 #include <asm/gpio.h>
 #include <asm/imx-common/iomux-v3.h>
 #include <mxc_epdc_fb.h>
@@ -38,11 +38,6 @@ static void setup_iomux_ddr_type_detection(void)
 
 static void ddr3_512mb_init(void)
 {
-	writel(0x4F400005, 0x30391000);
-	/* Clear then set bit30 to ensure exit from DDR retention */
-	writel(0x40000000, 0x30360388);
-	writel(0x40000000, 0x30360384);
-
 	writel(0x00000002, 0x30391000);
 	writel(0x01040001, 0x307a0000);
 	writel(0x00400046, 0x307a0064);
@@ -102,11 +97,6 @@ static void ddr3_512mb_init(void)
 
 static void ddr3_1gb_init(void)
 {
-	writel(0x4F400005, 0x30391000);
-	/* Clear then set bit30 to ensure exit from DDR retention */
-	writel(0x40000000, 0x30360388);
-	writel(0x40000000, 0x30360384);
-
 	writel(0x00000002, 0x30391000);
 	writel(0x01040001, 0x307a0000);
 	writel(0x80400003, 0x307a01a0);
@@ -169,12 +159,12 @@ static void spl_dram_init(void)
 {
 	setup_iomux_ddr_type_detection();
 	gpio_direction_input(DDR_TYPE_DET);
-
+	
 	 if (gpio_get_value(DDR_TYPE_DET)) {
 		ddr3_512mb_init();
-
+		
 	} else {
-		ddr3_1gb_init();
+		ddr3_1gb_init();	
 	}
 }
 
@@ -211,4 +201,7 @@ void board_init_f(ulong dummy)
 	board_init_r(NULL, 0);
 }
 
+void reset_cpu(ulong addr)
+{
+}
 #endif

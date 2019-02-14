@@ -318,7 +318,8 @@ static int emac_miiphy_command(u8 addr, u8 reg, int cmd, u16 value)
 	return 0;
 }
 
-int emac4xx_miiphy_read(struct mii_dev *bus, int addr, int devad, int reg)
+int emac4xx_miiphy_read (const char *devname, unsigned char addr, unsigned char reg,
+			 unsigned short *value)
 {
 	unsigned long sta_reg;
 	unsigned long emac_reg;
@@ -329,15 +330,17 @@ int emac4xx_miiphy_read(struct mii_dev *bus, int addr, int devad, int reg)
 		return -1;
 
 	sta_reg = in_be32((void *)EMAC0_STACR + emac_reg);
-	return sta_reg >> 16;
+	*value = sta_reg >> 16;
+
+	return 0;
 }
 
 /***********************************************************/
 /* write a phy reg and return the value with a rc	    */
 /***********************************************************/
 
-int emac4xx_miiphy_write(struct mii_dev *bus, int addr, int devad, int reg,
-			 u16 value)
+int emac4xx_miiphy_write (const char *devname, unsigned char addr, unsigned char reg,
+			  unsigned short value)
 {
 	return emac_miiphy_command(addr, reg, EMAC_STACR_WRITE, value);
 }

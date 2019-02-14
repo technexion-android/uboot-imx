@@ -2,7 +2,7 @@
  * (C) Copyright 2004-2008 Texas Instruments, <www.ti.com>
  * Rohit Choraria <rohitkc@ti.com>
  *
- * (C) Copyright 2013 Andreas Bießmann <andreas@biessmann.org>
+ * (C) Copyright 2013 Andreas Bießmann <andreas.devel@googlemail.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -92,7 +92,6 @@ struct gpmc {
 };
 
 /* Used for board specific gpmc initialization */
-extern const struct gpmc *gpmc_cfg;
-extern char gpmc_cs0_flash;
+extern struct gpmc *gpmc_cfg;
 
 #endif /* __ASM_OMAP_GPMC_H */

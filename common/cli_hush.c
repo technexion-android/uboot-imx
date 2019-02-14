@@ -79,7 +79,6 @@
 #include <malloc.h>         /* malloc, free, realloc*/
 #include <linux/ctype.h>    /* isalpha, isdigit */
 #include <common.h>        /* readline */
-#include <console.h>
 #include <bootretry.h>
 #include <cli.h>
 #include <cli_hush.h>
@@ -974,30 +973,6 @@ static inline void setup_prompt_string(int promptmode, char **prompt_str)
 }
 #endif
 
-#ifdef __U_BOOT__
-static int uboot_cli_readline(struct in_str *i)
-{
-	char *prompt;
-	char __maybe_unused *ps_prompt = NULL;
-
-	if (i->promptmode == 1)
-		prompt = CONFIG_SYS_PROMPT;
-	else
-		prompt = CONFIG_SYS_PROMPT_HUSH_PS2;
-
-#ifdef CONFIG_CMDLINE_PS_SUPPORT
-	if (i->promptmode == 1)
-		ps_prompt = getenv("PS1");
-	else
-		ps_prompt = getenv("PS2");
-	if (ps_prompt)
-		prompt = ps_prompt;
-#endif
-
-	return cli_readline(prompt);
-}
-#endif
-
 static void get_user_input(struct in_str *i)
 {
 #ifndef __U_BOOT__
@@ -1027,8 +1002,11 @@ static void get_user_input(struct in_str *i)
 
 	bootretry_reset_cmd_timeout();
 	i->__promptme = 1;
-	n = uboot_cli_readline(i);
-
+	if (i->promptmode == 1) {
+		n = cli_readline(CONFIG_SYS_PROMPT);
+	} else {
+		n = cli_readline(CONFIG_SYS_PROMPT_HUSH_PS2);
+	}
 #ifdef CONFIG_BOOT_RETRY_TIME
 	if (n == -2) {
 	  puts("\nTimeout waiting for command\n");
@@ -3529,9 +3507,9 @@ static char *insert_var_value_sub(char *inp, int tag_subst)
 	char *p, *p1, *res_str = NULL;
 
 	while ((p = strchr(inp, SPECIAL_VAR_SYMBOL))) {
-		/* check the beginning of the string for normal characters */
+		/* check the beginning of the string for normal charachters */
 		if (p != inp) {
-			/* copy any characters to the result string */
+			/* copy any charachters to the result string */
 			len = p - inp;
 			res_str = xrealloc(res_str, (res_str_len + len));
 			strncpy((res_str + res_str_len), inp, len);

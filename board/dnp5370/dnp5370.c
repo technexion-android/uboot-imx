@@ -1,5 +1,5 @@
 /*
- * U-Boot - main board file
+ * U-boot - main board file
  *
  * (C) Copyright 2010 3ality Digital Systems
  *
@@ -36,14 +36,28 @@ int checkboard(void)
 #ifdef CONFIG_BFIN_MAC
 static void board_init_enetaddr(uchar *mac_addr)
 {
-#ifdef CONFIG_MTD_NOR_FLASH
-	/* we cram the MAC in the last flash sector */
-	uchar *board_mac_addr = (uchar *)0x202F0000;
-	if (is_valid_ethaddr(board_mac_addr)) {
-		memcpy(mac_addr, board_mac_addr, 6);
-		eth_setenv_enetaddr("ethaddr", mac_addr);
-	}
+#ifdef CONFIG_SYS_NO_FLASH
+# define USE_MAC_IN_FLASH 0
+#else
+# define USE_MAC_IN_FLASH 1
 #endif
+	bool valid_mac = false;
+
+	if (USE_MAC_IN_FLASH) {
+		/* we cram the MAC in the last flash sector */
+		uchar *board_mac_addr = (uchar *)0x202F0000;
+		if (is_valid_ether_addr(board_mac_addr)) {
+			memcpy(mac_addr, board_mac_addr, 6);
+			valid_mac = true;
+		}
+	}
+
+	if (!valid_mac) {
+		puts("Warning: Generating 'random' MAC address\n");
+		eth_random_addr(mac_addr);
+	}
+
+	eth_setenv_enetaddr("ethaddr", mac_addr);
 }
 
 int board_eth_init(bd_t *bis)
@@ -63,7 +77,7 @@ int misc_init_r(void)
 		board_init_enetaddr(enetaddr);
 #endif
 
-#ifdef CONFIG_MTD_NOR_FLASH
+#ifndef CONFIG_SYS_NO_FLASH
 	/* we use the last sector for the MAC address / POST LDR */
 	extern flash_info_t flash_info[];
 	flash_protect(FLAG_PROTECT_SET, 0x202F0000, 0x202FFFFF, &flash_info[0]);

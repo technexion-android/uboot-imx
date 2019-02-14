@@ -6,7 +6,6 @@ config SYS_CPU
 
 choice
 	prompt "Target select"
-	optional
 
 config TARGET_A3M071
 	bool "Support a3m071"

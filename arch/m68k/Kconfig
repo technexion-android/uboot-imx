@@ -114,7 +114,6 @@ config M548x
 
 choice
 	prompt "Target select"
-	optional
 
 config TARGET_M52277EVB
 	bool "Support M52277EVB"

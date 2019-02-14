@@ -18,12 +18,20 @@
  * Command line configuration.
  */
 #define CONFIG_CMD_SDRAM
+#define CONFIG_CMD_FLASH
+#define CONFIG_CMD_MEMORY
+#define CONFIG_CMD_NET
+#define CONFIG_CMD_MII
+#define CONFIG_CMD_PING
 #define CONFIG_CMD_ENV
+#define CONFIG_CMD_NFS
+#define CONFIG_CMD_SAVEENV
 
+#define CONFIG_BOOTDELAY        -1
 #define CONFIG_BOOTARGS         "console=ttySC0,115200 root=1f01"
 #define CONFIG_ENV_OVERWRITE    1
 
-#define CONFIG_DISPLAY_BOARDINFO
+#define CONFIG_VERSION_VARIABLE
 #undef  CONFIG_SHOW_BOOT_PROGRESS
 
 /* SCIF */
@@ -53,7 +61,7 @@
 #define CONFIG_SYS_MAX_FLASH_BANKS (1)
 #define CONFIG_SYS_MAX_FLASH_SECT  (150)
 
-/* U-Boot setting */
+/* U-boot setting */
 #define CONFIG_SYS_LOAD_ADDR		(CONFIG_SYS_SDRAM_BASE + 4 * 1024 * 1024)
 #define CONFIG_SYS_MONITOR_BASE	(CONFIG_SYS_FLASH_BASE)
 #define CONFIG_SYS_MONITOR_LEN		(128 * 1024)

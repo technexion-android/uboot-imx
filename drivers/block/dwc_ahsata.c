@@ -13,7 +13,7 @@
 #include <common.h>
 #include <malloc.h>
 #include <linux/ctype.h>
-#include <linux/errno.h>
+#include <asm/errno.h>
 #include <asm/io.h>
 #include <linux/bitops.h>
 #include <asm/arch/clock.h>
@@ -80,7 +80,7 @@ struct sata_host_regs {
 
 static int is_ready;
 
-static inline void __iomem *ahci_port_base(void __iomem *base, u32 port)
+static inline u32 ahci_port_base(u32 base, u32 port)
 {
 	return base + 0x100 + (port * 0x80);
 }
@@ -167,7 +167,7 @@ static int ahci_host_init(struct ahci_probe_ent *probe_ent)
 
 	for (i = 0; i < probe_ent->n_ports; i++) {
 		probe_ent->port[i].port_mmio =
-			ahci_port_base(host_mmio, i);
+			ahci_port_base((u32)host_mmio, i);
 		port_mmio =
 			(struct sata_port_regs *)probe_ent->port[i].port_mmio;
 
@@ -343,7 +343,7 @@ static int ahci_init_one(int pdev)
 				| ATA_FLAG_PIO_DMA
 				| ATA_FLAG_NO_ATAPI;
 
-	probe_ent->mmio_base = (void __iomem *)CONFIG_DWC_AHSATA_BASE_ADDR;
+	probe_ent->mmio_base = CONFIG_DWC_AHSATA_BASE_ADDR;
 
 	/* initialize adapter */
 	rc = ahci_host_init(probe_ent);
@@ -399,11 +399,8 @@ static void ahci_fill_cmd_slot(struct ahci_ioports *pp, u32 cmd_slot, u32 opts)
 	memset(cmd_hdr, 0, AHCI_CMD_SLOT_SZ);
 	cmd_hdr->opts = cpu_to_le32(opts);
 	cmd_hdr->status = 0;
-	pp->cmd_slot->tbl_addr = cpu_to_le32((u32)pp->cmd_tbl & 0xffffffff);
-#ifdef CONFIG_PHYS_64BIT
-	pp->cmd_slot->tbl_addr_hi =
-	    cpu_to_le32((u32)(((pp->cmd_tbl) >> 16) >> 16));
-#endif
+	cmd_hdr->tbl_addr = cpu_to_le32(pp->cmd_tbl & 0xffffffff);
+	cmd_hdr->tbl_addr_hi = 0;
 }
 
 #define AHCI_GET_CMD_SLOT(c) ((c) ? ffs(c) : 0)
@@ -523,7 +520,7 @@ static int ahci_port_start(struct ahci_probe_ent *probe_ent,
 	 * and its scatter-gather table
 	 */
 	pp->cmd_tbl = mem;
-	debug("cmd_tbl_dma = 0x%lx\n", pp->cmd_tbl);
+	debug("cmd_tbl_dma = 0x%x\n", pp->cmd_tbl);
 
 	mem += AHCI_CMD_TBL_HDR;
 
@@ -563,7 +560,7 @@ int init_sata(int dev)
 	struct ahci_probe_ent *probe_ent = NULL;
 
 #if defined(CONFIG_MX6)
-	if (!is_mx6dq() && !is_mx6dqp())
+	if (!is_cpu_type(MXC_CPU_MX6Q) && !is_cpu_type(MXC_CPU_MX6D))
 		return 1;
 #endif
 	if (dev < 0 || dev > (CONFIG_SYS_SATA_MAX_DEVICE - 1)) {
@@ -615,15 +612,12 @@ int reset_sata(int dev)
 	while (readl(&host_mmio->ghc) & SATA_HOST_GHC_HR)
 		udelay(100);
 
-	free(probe_ent);
-	memset(&sata_dev_desc[dev], 0, sizeof(struct blk_desc));
-
 	return 0;
 }
 
 static void dwc_ahsata_print_info(int dev)
 {
-	struct blk_desc *pdev = &(sata_dev_desc[dev]);
+	block_dev_desc_t *pdev = &(sata_dev_desc[dev]);
 
 	printf("SATA Device Info:\n\r");
 #ifdef CONFIG_SYS_64BIT_LBA
@@ -959,7 +953,7 @@ int scan_sata(int dev)
 	struct ahci_probe_ent *probe_ent =
 		(struct ahci_probe_ent *)sata_dev_desc[dev].priv;
 	u8 port = probe_ent->hard_port_no;
-	struct blk_desc *pdev = &(sata_dev_desc[dev]);
+	block_dev_desc_t *pdev = &(sata_dev_desc[dev]);
 
 	id = (u16 *)memalign(ARCH_DMA_MINALIGN,
 				roundup(ARCH_DMA_MINALIGN,

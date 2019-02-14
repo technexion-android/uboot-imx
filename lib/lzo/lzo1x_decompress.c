@@ -98,24 +98,17 @@ int lzop_decompress(const unsigned char *src, size_t src_len,
 		if (dlen > remaining)
 			return LZO_E_OUTPUT_OVERRUN;
 
-		/* When the input data is not compressed at all,
-		 * lzo1x_decompress_safe will fail, so call memcpy()
-		 * instead */
-		if (dlen == slen) {
-			memcpy(dst, src, slen);
-		} else {
-			/* decompress */
-			tmp = dlen;
-			r = lzo1x_decompress_safe((u8 *)src, slen, dst, &tmp);
+		/* decompress */
+		tmp = dlen;
+		r = lzo1x_decompress_safe((u8 *) src, slen, dst, &tmp);
 
-			if (r != LZO_E_OK) {
-				*dst_len = dst - start;
-				return r;
-			}
-
-			if (dlen != tmp)
-				return LZO_E_ERROR;
+		if (r != LZO_E_OK) {
+			*dst_len = dst - start;
+			return r;
 		}
+
+		if (dlen != tmp)
+			return LZO_E_ERROR;
 
 		src += slen;
 		dst += dlen;

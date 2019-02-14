@@ -105,10 +105,10 @@
 #define NUM_ERASE_REGIONS	4 /* max. number of erase regions */
 
 typedef union {
-	u8 w8;
-	u16 w16;
-	u32 w32;
-	u64 w64;
+	unsigned char c;
+	unsigned short w;
+	unsigned long l;
+	unsigned long long ll;
 } cfiword_t;
 
 /* CFI standard query structure */

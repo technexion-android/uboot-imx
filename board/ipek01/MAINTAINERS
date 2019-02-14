@@ -1,5 +1,5 @@
 IPEK01 BOARD
-M:	Anatolij Gustschin <agust@denx.de>
+M:	Wolfgang Grandegger <wg@denx.de>
 S:	Maintained
 F:	board/ipek01/
 F:	include/configs/ipek01.h

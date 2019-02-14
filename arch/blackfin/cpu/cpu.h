@@ -1,5 +1,5 @@
 /*
- *  U-Boot - cpu.h
+ *  U-boot - cpu.h
  *
  *  Copyright (c) 2005-2007 Analog Devices Inc.
  *

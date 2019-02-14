@@ -1,5 +1,5 @@
 /*
- * U-Boot - u-boot.h Structure declarations for board specific data
+ * U-boot - u-boot.h Structure declarations for board specific data
  *
  * Copyright (c) 2005-2007 Analog Devices Inc.
  *

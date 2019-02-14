@@ -45,7 +45,7 @@
 /* Rather than repeat this expression each time, add a define for it */
 #if defined(CONFIG_CMD_IDE) || \
 	defined(CONFIG_CMD_SATA) || \
-	defined(CONFIG_SCSI) || \
+	defined(CONFIG_CMD_SCSI) || \
 	defined(CONFIG_CMD_USB) || \
 	defined(CONFIG_CMD_PART) || \
 	defined(CONFIG_CMD_GPT) || \
@@ -55,8 +55,8 @@
 #define HAVE_BLOCK_DEVICE
 #endif
 
-#if (CONFIG_IS_ENABLED(PARTITION_UUIDS) || \
-	CONFIG_IS_ENABLED(EFI_PARTITION) || \
+#if (defined(CONFIG_PARTITION_UUIDS) || \
+	defined(CONFIG_EFI_PARTITION) || \
 	defined(CONFIG_RANDOM_UUID) || \
 	defined(CONFIG_CMD_UUID) || \
 	defined(CONFIG_BOOTP_PXE)) && \
@@ -75,6 +75,10 @@
 #define CONFIG_CMD_BMP
 #endif
 
+#ifndef CONFIG_SYS_PROMPT
+#define CONFIG_SYS_PROMPT	"=> "
+#endif
+
 #ifndef CONFIG_SYS_PBSIZE
 #define CONFIG_SYS_PBSIZE	(CONFIG_SYS_CBSIZE + 128)
 #endif
@@ -91,11 +95,6 @@
 # ifdef CONFIG_SYS_I2C
 #  error "Cannot define CONFIG_SYS_I2C when CONFIG_DM_I2C is used"
 # endif
-#endif
-
-#ifndef CONFIG_CMDLINE
-#undef CONFIG_CMDLINE_EDITING
-#undef CONFIG_SYS_LONGHELP
 #endif
 
 #endif	/* __CONFIG_FALLBACKS_H */

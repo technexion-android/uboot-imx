@@ -5,9 +5,8 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include <config.h>
 #include <common.h>
-#include <console.h>
-#include <div64.h>
 #include <inttypes.h>
 #include <version.h>
 #include <linux/ctype.h>
@@ -21,46 +20,6 @@ int display_options (void)
 	printf ("\n\n%s\n\n", version_string);
 #endif
 	return 0;
-}
-
-void print_freq(uint64_t freq, const char *s)
-{
-	unsigned long m = 0;
-	uint32_t f;
-	static const char names[] = {'G', 'M', 'K'};
-	unsigned long d = 1e9;
-	char c = 0;
-	unsigned int i;
-
-	for (i = 0; i < ARRAY_SIZE(names); i++, d /= 1000) {
-		if (freq >= d) {
-			c = names[i];
-			break;
-		}
-	}
-
-	if (!c) {
-		printf("%" PRIu64 " Hz%s", freq, s);
-		return;
-	}
-
-	f = do_div(freq, d);
-
-	/* If there's a remainder, show the first few digits */
-	if (f) {
-		m = f;
-		while (m > 1000)
-			m /= 10;
-		while (m && !(m % 10))
-			m /= 10;
-		if (m >= 100)
-			m = (m / 10) + (m % 100 >= 50);
-	}
-
-	printf("%lu", (unsigned long) freq);
-	if (m)
-		printf(".%ld", m);
-	printf(" %cHz%s", c, s);
 }
 
 void print_size(uint64_t size, const char *s)
@@ -104,6 +63,19 @@ void print_size(uint64_t size, const char *s)
 	printf (" %ciB%s", c, s);
 }
 
+/*
+ * Print data buffer in hex and ascii form to the terminal.
+ *
+ * data reads are buffered so that each memory address is only read once.
+ * Useful when displaying the contents of volatile registers.
+ *
+ * parameters:
+ *    addr: Starting address to display at start of line
+ *    data: pointer to data buffer
+ *    width: data value width.  May be 1, 2, or 4.
+ *    count: number of values to display
+ *    linelen: Number of values to print per line; specify 0 for default length
+ */
 #define MAX_LINE_LENGTH_BYTES (64)
 #define DEFAULT_LINE_LENGTH_BYTES (16)
 int print_buffer(ulong addr, const void *data, uint width, uint count,
@@ -120,9 +92,9 @@ int print_buffer(ulong addr, const void *data, uint width, uint count,
 	} lb;
 	int i;
 #ifdef CONFIG_SYS_SUPPORT_64BIT_DATA
-	uint64_t __maybe_unused x;
+	uint64_t x;
 #else
-	uint32_t __maybe_unused x;
+	uint32_t x;
 #endif
 
 	if (linelen*width > MAX_LINE_LENGTH_BYTES)
@@ -151,7 +123,7 @@ int print_buffer(ulong addr, const void *data, uint width, uint count,
 			else
 				x = lb.uc[i] = *(volatile uint8_t *)data;
 #ifdef CONFIG_SYS_SUPPORT_64BIT_DATA
-			printf(" %0*llx", width * 2, (long long)x);
+			printf(" %0*" PRIx64, width * 2, x);
 #else
 			printf(" %0*x", width * 2, x);
 #endif

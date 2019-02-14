@@ -12,7 +12,7 @@
 #ifndef __AUTOBOOT_H
 #define __AUTOBOOT_H
 
-#ifdef CONFIG_AUTOBOOT
+#ifdef CONFIG_BOOTDELAY
 /**
  * bootdelay_process() - process the bootd delay
  *

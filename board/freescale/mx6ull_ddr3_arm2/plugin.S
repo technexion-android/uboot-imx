@@ -18,7 +18,6 @@
 	str r1, [r0, #0x250]
 	str r1, [r0, #0x24C]
 	str r1, [r0, #0x490]
-	ldr r1, =0x000C0030
 	str r1, [r0, #0x288]
 
 	ldr r1, =0x00000000
@@ -64,7 +63,7 @@
 	ldr r1, =0xF3333333
 	str r1, [r0, #0x82C]
 	str r1, [r0, #0x830]
-	ldr r1, =0x00944009
+	ldr r1, =0x00922012
 	str r1, [r0, #0x8C0]
 	ldr r1, =0x00000800
 	str r1, [r0, #0x8B8]
@@ -78,7 +77,7 @@
 	str r1, [r0, #0x010]
 	ldr r1, =0x01FF00DB
 	str r1, [r0, #0x014]
-	ldr r1, =0x00211740
+	ldr r1, =0x00201740
 	str r1, [r0, #0x018]
 	ldr r1, =0x00008000
 	str r1, [r0, #0x01C]
@@ -90,7 +89,7 @@
 	str r1, [r0, #0x040]
 	ldr r1, =0x85180000
 	str r1, [r0, #0x000]
-	ldr r1, =0x00400000
+	ldr r1, =0x00400A38
 	str r1, [r0, #0x890]
 	ldr r1, =0x02008032
 	str r1, [r0, #0x01C]

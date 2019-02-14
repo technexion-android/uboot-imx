@@ -14,7 +14,7 @@
 #include <part.h>
 #include <malloc.h>
 #include <asm/io.h>
-#include <linux/errno.h>
+#include <asm/errno.h>
 #include <asm/byteorder.h>
 #include <asm/arch/clk.h>
 #include <asm/arch/hardware.h>
@@ -32,12 +32,7 @@
 # define MCI_BUS 0
 #endif
 
-struct atmel_mci_priv {
-	struct mmc_config	cfg;
-	struct atmel_mci	*mci;
-	unsigned int		initialized:1;
-	unsigned int		curr_clk;
-};
+static int initialized = 0;
 
 /* Read Atmel MCI IP version */
 static unsigned int atmel_mci_get_version(struct atmel_mci *mci)
@@ -53,15 +48,14 @@ static unsigned int atmel_mci_get_version(struct atmel_mci *mci)
  */
 static void dump_cmd(u32 cmdr, u32 arg, u32 status, const char* msg)
 {
-	debug("gen_atmel_mci: CMDR %08x (%2u) ARGR %08x (SR: %08x) %s\n",
-	      cmdr, cmdr & 0x3F, arg, status, msg);
+	printf("gen_atmel_mci: CMDR %08x (%2u) ARGR %08x (SR: %08x) %s\n",
+		cmdr, cmdr&0x3F, arg, status, msg);
 }
 
 /* Setup for MCI Clock and Block Size */
 static void mci_set_mode(struct mmc *mmc, u32 hz, u32 blklen)
 {
-	struct atmel_mci_priv *priv = mmc->priv;
-	atmel_mci_t *mci = priv->mci;
+	atmel_mci_t *mci = mmc->priv;
 	u32 bus_hz = get_mci_clk_rate();
 	u32 clkdiv = 255;
 	unsigned int version = atmel_mci_get_version(mci);
@@ -79,23 +73,20 @@ static void mci_set_mode(struct mmc *mmc, u32 hz, u32 blklen)
 			clkodd = clkdiv & 1;
 			clkdiv >>= 1;
 
-			debug("mci: setting clock %u Hz, block size %u\n",
-			      bus_hz / (clkdiv * 2 + clkodd + 2), blklen);
+			printf("mci: setting clock %u Hz, block size %u\n",
+			       bus_hz / (clkdiv * 2 + clkodd + 2), blklen);
 		} else {
 			/* find clkdiv yielding a rate <= than requested */
 			for (clkdiv = 0; clkdiv < 255; clkdiv++) {
 				if ((bus_hz / (clkdiv + 1) / 2) <= hz)
 					break;
 			}
-			debug("mci: setting clock %u Hz, block size %u\n",
-			      (bus_hz / (clkdiv + 1)) / 2, blklen);
+			printf("mci: setting clock %u Hz, block size %u\n",
+			       (bus_hz / (clkdiv + 1)) / 2, blklen);
 
 		}
 	}
-	if (version >= 0x500)
-		priv->curr_clk = bus_hz / (clkdiv * 2 + clkodd + 2);
-	else
-		priv->curr_clk = (bus_hz / (clkdiv + 1)) / 2;
+
 	blklen &= 0xfffc;
 
 	mr = MMCI_BF(CLKDIV, clkdiv);
@@ -122,7 +113,7 @@ static void mci_set_mode(struct mmc *mmc, u32 hz, u32 blklen)
 	if (mmc->card_caps & mmc->cfg->host_caps & MMC_MODE_HS)
 		writel(MMCI_BIT(HSMODE), &mci->cfg);
 
-	priv->initialized = 1;
+	initialized = 1;
 }
 
 /* Return the CMDR with flags for a given command and data packet */
@@ -205,15 +196,14 @@ io_fail:
 static int
 mci_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 {
-	struct atmel_mci_priv *priv = mmc->priv;
-	atmel_mci_t *mci = priv->mci;
+	atmel_mci_t *mci = mmc->priv;
 	u32 cmdr;
 	u32 error_flags = 0;
 	u32 status;
 
-	if (!priv->initialized) {
+	if (!initialized) {
 		puts ("MCI not initialized!\n");
-		return -ECOMM;
+		return COMM_ERR;
 	}
 
 	/* Figure out the transfer arguments */
@@ -238,10 +228,10 @@ mci_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 
 	if ((status & error_flags) & MMCI_BIT(RTOE)) {
 		dump_cmd(cmdr, cmd->cmdarg, status, "Command Time Out");
-		return -ETIMEDOUT;
+		return TIMEOUT;
 	} else if (status & error_flags) {
 		dump_cmd(cmdr, cmd->cmdarg, status, "Command Failed");
-		return -ECOMM;
+		return COMM_ERR;
 	}
 
 	/* Copy the response to the response buffer */
@@ -303,7 +293,7 @@ mci_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 			if (status) {
 				dump_cmd(cmdr, cmd->cmdarg, status,
 					"Data Transfer Failed");
-				return -ECOMM;
+				return COMM_ERR;
 			}
 		}
 
@@ -315,7 +305,7 @@ mci_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 			if (status & error_flags) {
 				dump_cmd(cmdr, cmd->cmdarg, status,
 					"DTIP Wait Failed");
-				return -ECOMM;
+				return COMM_ERR;
 			}
 			i++;
 		} while ((status & MMCI_BIT(DTIP)) && i < 10000);
@@ -325,21 +315,13 @@ mci_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 		}
 	}
 
-	/*
-	 * After the switch command, wait for 8 clocks before the next
-	 * command
-	 */
-	if (cmd->cmdidx == MMC_CMD_SWITCH)
-		udelay(8*1000000 / priv->curr_clk); /* 8 clk in us */
-
 	return 0;
 }
 
 /* Entered into mmc structure during driver init */
-static int mci_set_ios(struct mmc *mmc)
+static void mci_set_ios(struct mmc *mmc)
 {
-	struct atmel_mci_priv *priv = mmc->priv;
-	atmel_mci_t *mci = priv->mci;
+	atmel_mci_t *mci = mmc->priv;
 	int bus_width = mmc->bus_width;
 	unsigned int version = atmel_mci_get_version(mci);
 	int busw;
@@ -370,15 +352,12 @@ static int mci_set_ios(struct mmc *mmc)
 
 		writel(busw << 7 | MMCI_BF(SCDSEL, MCI_BUS), &mci->sdcr);
 	}
-
-	return 0;
 }
 
 /* Entered into mmc structure during driver init */
 static int mci_init(struct mmc *mmc)
 {
-	struct atmel_mci_priv *priv = mmc->priv;
-	atmel_mci_t *mci = priv->mci;
+	atmel_mci_t *mci = mmc->priv;
 
 	/* Initialize controller */
 	writel(MMCI_BIT(SWRST), &mci->cr);	/* soft reset */
@@ -412,24 +391,22 @@ int atmel_mci_init(void *regs)
 {
 	struct mmc *mmc;
 	struct mmc_config *cfg;
-	struct atmel_mci_priv *priv;
+	struct atmel_mci *mci;
 	unsigned int version;
 
-	priv = calloc(1, sizeof(*priv));
-	if (!priv)
-		return -ENOMEM;
+	cfg = malloc(sizeof(*cfg));
+	if (cfg == NULL)
+		return -1;
+	memset(cfg, 0, sizeof(*cfg));
 
-	cfg = &priv->cfg;
+	mci = (struct atmel_mci *)regs;
 
 	cfg->name = "mci";
 	cfg->ops = &atmel_mci_ops;
 
-	priv->mci = (struct atmel_mci *)regs;
-	priv->initialized = 0;
-
 	/* need to be able to pass these in on a board by board basis */
 	cfg->voltages = MMC_VDD_32_33 | MMC_VDD_33_34;
-	version = atmel_mci_get_version(priv->mci);
+	version = atmel_mci_get_version(mci);
 	if ((version & 0xf00) >= 0x300) {
 		cfg->host_caps = MMC_MODE_8BIT;
 		cfg->host_caps |= MMC_MODE_HS | MMC_MODE_HS_52MHz;
@@ -446,13 +423,13 @@ int atmel_mci_init(void *regs)
 
 	cfg->b_max = CONFIG_SYS_MMC_MAX_BLK_COUNT;
 
-	mmc = mmc_create(cfg, priv);
+	mmc = mmc_create(cfg, regs);
 
 	if (mmc == NULL) {
-		free(priv);
-		return -ENODEV;
+		free(cfg);
+		return -1;
 	}
-	/* NOTE: possibly leaking the priv structure */
+	/* NOTE: possibly leaking the cfg structure */
 
 	return 0;
 }

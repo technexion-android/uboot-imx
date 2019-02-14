@@ -8,13 +8,9 @@
 #include <fs.h>
 #include <os.h>
 
-int sandbox_fs_set_blk_dev(struct blk_desc *rbdd, disk_partition_t *info)
+int sandbox_fs_set_blk_dev(block_dev_desc_t *rbdd, disk_partition_t *info)
 {
-	/*
-	 * Only accept a NULL struct blk_desc for the sandbox, which is when
-	 * hostfs interface is used
-	 */
-	return rbdd != NULL;
+	return 0;
 }
 
 int sandbox_fs_read_at(const char *filename, loff_t pos, void *buffer,
@@ -88,16 +84,14 @@ int sandbox_fs_ls(const char *dirname)
 
 	ret = os_dirent_ls(dirname, &head);
 	if (ret)
-		goto out;
+		return ret;
 
 	for (node = head; node; node = node->next) {
 		printf("%s %10lu %s\n", os_dirent_get_typename(node->type),
 		       node->size, node->name);
 	}
-out:
-	os_dirent_free(head);
 
-	return ret;
+	return 0;
 }
 
 int sandbox_fs_exists(const char *filename)

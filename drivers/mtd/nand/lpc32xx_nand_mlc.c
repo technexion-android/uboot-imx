@@ -22,7 +22,7 @@
 
 #include <common.h>
 #include <nand.h>
-#include <linux/errno.h>
+#include <asm/errno.h>
 #include <asm/io.h>
 #include <nand.h>
 #include <asm/arch/clk.h>
@@ -378,8 +378,7 @@ static int lpc32xx_read_oob(struct mtd_info *mtd, struct nand_chip *chip,
  */
 
 static int lpc32xx_write_page_hwecc(struct mtd_info *mtd,
-	struct nand_chip *chip, const uint8_t *buf, int oob_required,
-	int page)
+	struct nand_chip *chip, const uint8_t *buf, int oob_required)
 {
 	unsigned int i, status, timeout;
 	struct lpc32xx_oob *oob = (struct lpc32xx_oob *)chip->oob_poi;
@@ -436,8 +435,7 @@ static int lpc32xx_write_page_hwecc(struct mtd_info *mtd,
  */
 
 static int lpc32xx_write_page_raw(struct mtd_info *mtd,
-	struct nand_chip *chip, const uint8_t *buf, int oob_required,
-	int page)
+	struct nand_chip *chip, const uint8_t *buf, int oob_required)
 {
 	unsigned int i;
 	struct lpc32xx_oob *oob = (struct lpc32xx_oob *)chip->oob_poi;
@@ -541,7 +539,11 @@ static struct nand_chip lpc32xx_chip;
 
 void board_nand_init(void)
 {
-	struct mtd_info *mtd = nand_to_mtd(&lpc32xx_chip);
+	/* we have only one device anyway */
+	struct mtd_info *mtd = &nand_info[0];
+	/* chip is struct nand_chip, and is now provided by the driver. */
+	mtd->priv = &lpc32xx_chip;
+	/* to store return status in case we need to print it */
 	int ret;
 
 	/* Set all BOARDSPECIFIC (actually core-specific) fields  */
@@ -595,7 +597,7 @@ void board_nand_init(void)
 	}
 
 	/* chip is good, register it */
-	ret = nand_register(0, mtd);
+	ret = nand_register(0);
 	if (ret)
 		error("nand_register returned %i", ret);
 }

@@ -240,23 +240,23 @@ static void eepro100_halt (struct eth_device *dev);
 
 static inline int INW (struct eth_device *dev, u_long addr)
 {
-	return le16_to_cpu(*(volatile u16 *)(addr + (u_long)dev->iobase));
+	return le16_to_cpu (*(volatile u16 *) (addr + dev->iobase));
 }
 
 static inline void OUTW (struct eth_device *dev, int command, u_long addr)
 {
-	*(volatile u16 *)((addr + (u_long)dev->iobase)) = cpu_to_le16(command);
+	*(volatile u16 *) ((addr + dev->iobase)) = cpu_to_le16 (command);
 }
 
 static inline void OUTL (struct eth_device *dev, int command, u_long addr)
 {
-	*(volatile u32 *)((addr + (u_long)dev->iobase)) = cpu_to_le32(command);
+	*(volatile u32 *) ((addr + dev->iobase)) = cpu_to_le32 (command);
 }
 
 #if defined(CONFIG_MII) || defined(CONFIG_CMD_MII)
 static inline int INL (struct eth_device *dev, u_long addr)
 {
-	return le32_to_cpu(*(volatile u32 *)(addr + (u_long)dev->iobase));
+	return le32_to_cpu (*(volatile u32 *) (addr + dev->iobase));
 }
 
 static int get_phyreg (struct eth_device *dev, unsigned char addr,
@@ -334,35 +334,34 @@ static struct eth_device* verify_phyaddr (const char *devname,
 	return dev;
 }
 
-static int eepro100_miiphy_read(struct mii_dev *bus, int addr, int devad,
-				int reg)
+static int eepro100_miiphy_read(const char *devname, unsigned char addr,
+		unsigned char reg, unsigned short *value)
 {
-	unsigned short value = 0;
 	struct eth_device *dev;
 
-	dev = verify_phyaddr(bus->name, addr);
+	dev = verify_phyaddr(devname, addr);
 	if (dev == NULL)
 		return -1;
 
-	if (get_phyreg(dev, addr, reg, &value) != 0) {
-		printf("%s: mii read timeout!\n", bus->name);
+	if (get_phyreg(dev, addr, reg, value) != 0) {
+		printf("%s: mii read timeout!\n", devname);
 		return -1;
 	}
 
-	return value;
+	return 0;
 }
 
-static int eepro100_miiphy_write(struct mii_dev *bus, int addr, int devad,
-				 int reg, u16 value)
+static int eepro100_miiphy_write(const char *devname, unsigned char addr,
+		unsigned char reg, unsigned short value)
 {
 	struct eth_device *dev;
 
-	dev = verify_phyaddr(bus->name, addr);
+	dev = verify_phyaddr(devname, addr);
 	if (dev == NULL)
 		return -1;
 
 	if (set_phyreg(dev, addr, reg, value) != 0) {
-		printf("%s: mii write timeout!\n", bus->name);
+		printf("%s: mii write timeout!\n", devname);
 		return -1;
 	}
 
@@ -452,17 +451,8 @@ int eepro100_initialize (bd_t * bis)
 
 #if defined (CONFIG_MII) || defined(CONFIG_CMD_MII)
 		/* register mii command access routines */
-		int retval;
-		struct mii_dev *mdiodev = mdio_alloc();
-		if (!mdiodev)
-			return -ENOMEM;
-		strncpy(mdiodev->name, dev->name, MDIO_NAME_LEN);
-		mdiodev->read = eepro100_miiphy_read;
-		mdiodev->write = eepro100_miiphy_write;
-
-		retval = mdio_register(mdiodev);
-		if (retval < 0)
-			return retval;
+		miiphy_register(dev->name,
+				eepro100_miiphy_read, eepro100_miiphy_write);
 #endif
 
 		card_number++;
@@ -684,8 +674,7 @@ static int eepro100_recv (struct eth_device *dev)
 			/* Pass the packet up to the protocol
 			 * layers.
 			 */
-			net_process_received_packet((u8 *)rx_ring[rx_next].data,
-						    length);
+			NetReceive((u8 *)rx_ring[rx_next].data, length);
 		} else {
 			/* There was an error.
 			 */

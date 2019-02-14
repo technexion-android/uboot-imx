@@ -1,5 +1,5 @@
 /*
- * U-Boot - flash-defines.h
+ * U-boot - flash-defines.h
  *
  * Copyright (c) 2005-2007 Analog Devices Inc.
  *

@@ -88,7 +88,7 @@ struct sandbox_spi_flash {
 	/* The current flash status (see STAT_XXX defines above) */
 	u16 status;
 	/* Data describing the flash we're emulating */
-	const struct spi_flash_info *data;
+	const struct spi_flash_params *data;
 	/* The file on disk to serv up data from */
 	int fd;
 };
@@ -112,7 +112,7 @@ static int sandbox_sf_probe(struct udevice *dev)
 	struct sandbox_spi_flash *sbsf = dev_get_priv(dev);
 	const char *file;
 	size_t len, idname_len;
-	const struct spi_flash_info *data;
+	const struct spi_flash_params *data;
 	struct sandbox_spi_flash_plat_data *pdata = dev_get_platdata(dev);
 	struct sandbox_state *state = state_get_current();
 	struct udevice *bus = dev->parent;
@@ -129,7 +129,7 @@ static int sandbox_sf_probe(struct udevice *dev)
 		}
 	}
 	if (cs == -1) {
-		printf("Error: Unknown chip select for device '%s'\n",
+		printf("Error: Unknown chip select for device '%s'",
 		       dev->name);
 		return -EINVAL;
 	}
@@ -142,15 +142,13 @@ static int sandbox_sf_probe(struct udevice *dev)
 		if (bus->seq < CONFIG_SANDBOX_SPI_MAX_BUS)
 			spec = state->spi[bus->seq][cs].spec;
 		if (!spec) {
-			debug("%s:  No spec found for bus %d, cs %d\n",
-			      __func__, bus->seq, cs);
 			ret = -ENOENT;
 			goto error;
 		}
 
 		file = strchr(spec, ':');
 		if (!file) {
-			printf("%s: unable to parse file\n", __func__);
+			printf("sandbox_sf: unable to parse file\n");
 			ret = -EINVAL;
 			goto error;
 		}
@@ -168,7 +166,7 @@ static int sandbox_sf_probe(struct udevice *dev)
 	}
 	debug("%s: device='%s'\n", __func__, spec);
 
-	for (data = spi_flash_ids; data->name; data++) {
+	for (data = spi_flash_params_table; data->name; data++) {
 		len = strlen(data->name);
 		if (idname_len != len)
 			continue;
@@ -176,7 +174,7 @@ static int sandbox_sf_probe(struct udevice *dev)
 			break;
 	}
 	if (!data->name) {
-		printf("%s: unknown flash '%*s'\n", __func__, (int)idname_len,
+		printf("sandbox_sf: unknown flash '%*s'\n", (int)idname_len,
 		       spec);
 		ret = -EINVAL;
 		goto error;
@@ -187,7 +185,8 @@ static int sandbox_sf_probe(struct udevice *dev)
 
 	sbsf->fd = os_open(pdata->filename, 02);
 	if (sbsf->fd == -1) {
-		printf("%s: unable to open file '%s'\n", __func__,
+		free(sbsf);
+		printf("sandbox_sf: unable to open file '%s'\n",
 		       pdata->filename);
 		ret = -EIO;
 		goto error;
@@ -289,10 +288,13 @@ static int sandbox_sf_process_cmd(struct sandbox_spi_flash *sbsf, const u8 *rx,
 		/* we only support erase here */
 		if (sbsf->cmd == CMD_ERASE_CHIP) {
 			sbsf->erase_size = sbsf->data->sector_size *
-				sbsf->data->n_sectors;
+				sbsf->data->nr_sectors;
 		} else if (sbsf->cmd == CMD_ERASE_4K && (flags & SECT_4K)) {
 			sbsf->erase_size = 4 << 10;
-		} else if (sbsf->cmd == CMD_ERASE_64K && !(flags & SECT_4K)) {
+		} else if (sbsf->cmd == CMD_ERASE_32K && (flags & SECT_32K)) {
+			sbsf->erase_size = 32 << 10;
+		} else if (sbsf->cmd == CMD_ERASE_64K &&
+			   !(flags & (SECT_4K | SECT_32K))) {
 			sbsf->erase_size = 64 << 10;
 		} else {
 			debug(" cmd unknown: %#x\n", sbsf->cmd);
@@ -359,8 +361,7 @@ static int sandbox_sf_xfer(struct udevice *dev, unsigned int bitlen,
 			debug(" id: off:%u tx:", sbsf->off);
 			if (sbsf->off < IDCODE_LEN) {
 				/* Extract correct byte from ID 0x00aabbcc */
-				id = ((JEDEC_MFR(sbsf->data) << 16) |
-					JEDEC_ID(sbsf->data)) >>
+				id = sbsf->data->jedec >>
 					(8 * (IDCODE_LEN - 1 - sbsf->off));
 			} else {
 				id = 0;
@@ -516,7 +517,7 @@ int sandbox_sf_ofdata_to_platdata(struct udevice *dev)
 {
 	struct sandbox_spi_flash_plat_data *pdata = dev_get_platdata(dev);
 	const void *blob = gd->fdt_blob;
-	int node = dev_of_offset(dev);
+	int node = dev->of_offset;
 
 	pdata->filename = fdt_getprop(blob, node, "sandbox,filename", NULL);
 	pdata->device_name = fdt_getprop(blob, node, "compatible", NULL);
@@ -552,9 +553,6 @@ static int sandbox_cmdline_cb_spi_sf(struct sandbox_state *state,
 	 * yet. Perhaps we can figure something out.
 	 */
 	state->spi[bus][cs].spec = spec;
-	debug("%s:  Setting up spec '%s' for bus %ld, cs %ld\n", __func__,
-	      spec, bus, cs);
-
 	return 0;
 }
 SANDBOX_CMDLINE_OPT(spi_sf, 1, "connect a SPI flash: <bus>:<cs>:<id>:<file>");
@@ -641,7 +639,7 @@ int sandbox_spi_get_emul(struct sandbox_state *state,
 		debug("%s: busnum=%u, cs=%u: binding SPI flash emulation: ",
 		      __func__, busnum, cs);
 		ret = sandbox_sf_bind_emul(state, busnum, cs, bus,
-					   dev_of_offset(slave), slave->name);
+					   slave->of_offset, slave->name);
 		if (ret) {
 			debug("failed (err=%d)\n", ret);
 			return ret;
@@ -673,8 +671,6 @@ int dm_scan_other(bool pre_reloc_only)
 					      __func__, busnum, cs);
 					return ret;
 				}
-				debug("%s:  Setting up spec '%s' for bus %d, cs %d\n",
-				      __func__, spec, busnum, cs);
 			}
 		}
 	}

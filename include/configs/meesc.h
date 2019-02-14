@@ -3,7 +3,7 @@
  * Stelian Pop <stelian@popies.net>
  * Lead Tech Design <www.leadtechdesign.com>
  *
- * (C) Copyright 2009-2015
+ * (C) Copyright 2009-2011
  * Daniel Gorsulowski <daniel.gorsulowski@esd.eu>
  * esd electronic system design gmbh <www.esd.eu>
  *
@@ -27,7 +27,15 @@
  * Since the linker has to swallow that define, we must use a pure
  * hex number here!
  */
-#define CONFIG_SYS_TEXT_BASE		0x21F00000
+#define CONFIG_SYS_TEXT_BASE		0x20002000
+
+/*
+ * since a number of boards are not being listed in linux
+ * arch/arm/tools/mach-types any more, the mach-types have to be
+ * defined here
+ */
+#define MACH_TYPE_MEESC			2165
+#define MACH_TYPE_ETHERCAN2		2407
 
 /* ARM asynchronous clock */
 #define CONFIG_SYS_AT91_SLOW_CLOCK	32768	/* 32.768 kHz crystal */
@@ -36,6 +44,7 @@
 /* Misc CPU related */
 #define CONFIG_SKIP_LOWLEVEL_INIT
 #define CONFIG_ARCH_CPU_INIT
+#define CONFIG_BOARD_EARLY_INIT_F		/* call board_early_init_f() */
 #define CONFIG_SETUP_MEMORY_TAGS
 #define CONFIG_INITRD_TAG
 #define CONFIG_SERIAL_TAG
@@ -43,11 +52,16 @@
 #define CONFIG_CMDLINE_TAG			/* enable passing of ATAGs */
 #define CONFIG_MISC_INIT_R			/* Call misc_init_r */
 
+#define CONFIG_DISPLAY_BOARDINFO		/* call checkboard() */
+#define CONFIG_DISPLAY_CPUINFO			/* display cpu info and speed */
 #define CONFIG_PREBOOT				/* enable preboot variable */
 
 /*
  * Hardware drivers
  */
+
+/* required until arch/arm/include/asm/arch-at91/at91sam9263.h is reworked */
+#define ATMEL_PMC_UHP			AT91SAM926x_PMC_UHP
 
 /* general purpose I/O */
 #define CONFIG_AT91_GPIO
@@ -57,6 +71,9 @@
 #define CONFIG_USART_BASE		ATMEL_BASE_DBGU
 #define CONFIG_USART_ID			ATMEL_ID_SYS
 #define CONFIG_BAUDRATE			115200
+
+#define CONFIG_BOOTDELAY		3
+#define CONFIG_ZERO_BOOTDELAY_CHECK
 
 /*
  * BOOTP options
@@ -69,10 +86,16 @@
 /*
  * Command line configuration.
  */
+#include <config_cmd_default.h>
+#undef CONFIG_CMD_BDI
+#undef CONFIG_CMD_FPGA
+#undef CONFIG_CMD_LOADS
+#undef CONFIG_CMD_IMLS
 
-#ifdef CONFIG_SYS_USE_NANDFLASH
+#define CONFIG_CMD_PING
+#define CONFIG_CMD_DHCP
 #define CONFIG_CMD_NAND
-#endif
+#define CONFIG_CMD_USB
 
 /* LED */
 #define CONFIG_AT91_LED
@@ -81,12 +104,9 @@
  * SDRAM: 1 bank, min 32, max 128 MB
  * Initialized before u-boot gets started.
  */
-#define PHYS_SDRAM					ATMEL_BASE_CS1 /* 0x20000000 */
-#define PHYS_SDRAM_SIZE				0x02000000     /* 32 MByte */
-
 #define CONFIG_NR_DRAM_BANKS		1
-#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
-#define CONFIG_SYS_SDRAM_SIZE		PHYS_SDRAM_SIZE
+#define CONFIG_SYS_SDRAM_BASE		0x20000000 /* ATMEL_BASE_CS1 */
+#define CONFIG_SYS_SDRAM_SIZE		0x02000000
 
 #define CONFIG_SYS_MEMTEST_START	(CONFIG_SYS_SDRAM_BASE + 0x00100000)
 #define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_SDRAM_BASE + 0x01E00000)
@@ -111,11 +131,14 @@
 # define DATAFLASH_TCHS				(0x1 << 24)
 #endif
 
+/* NOR flash is not populated, disable it */
+#define CONFIG_SYS_NO_FLASH
+
 /* NAND flash */
 #ifdef CONFIG_CMD_NAND
 # define CONFIG_NAND_ATMEL
 # define CONFIG_SYS_MAX_NAND_DEVICE		1
-# define CONFIG_SYS_NAND_BASE			ATMEL_BASE_CS3 /* 0x40000000 */
+# define CONFIG_SYS_NAND_BASE			0x40000000 /* ATMEL_BASE_CS3 */
 # define CONFIG_SYS_NAND_DBW_8
 # define CONFIG_SYS_NAND_MASK_ALE		(1 << 21)
 # define CONFIG_SYS_NAND_MASK_CLE		(1 << 22)
@@ -126,8 +149,22 @@
 /* Ethernet */
 #define CONFIG_MACB
 #define CONFIG_RMII
+#define CONFIG_FIT
 #define CONFIG_NET_RETRY_COUNT			20
 #undef CONFIG_RESET_PHY_R
+
+/* USB */
+#define CONFIG_USB_ATMEL
+#define CONFIG_USB_ATMEL_CLK_SEL_PLLB
+#define CONFIG_USB_OHCI_NEW
+#define CONFIG_DOS_PARTITION
+#define CONFIG_SYS_USB_OHCI_CPU_INIT
+#define CONFIG_SYS_USB_OHCI_REGS_BASE		0x00a00000
+#define CONFIG_SYS_USB_OHCI_SLOT_NAME		"at91sam9263"
+#define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS	2
+
+/* CAN */
+#define CONFIG_AT91_CAN
 
 /* hw-controller addresses */
 #define CONFIG_ET1100_BASE		0x70000000
@@ -158,7 +195,6 @@
 					sizeof(CONFIG_SYS_PROMPT) + 16)
 #define CONFIG_SYS_LONGHELP
 #define CONFIG_CMDLINE_EDITING
-#define CONFIG_AUTO_COMPLETE
 
 /*
  * Size of malloc() pool

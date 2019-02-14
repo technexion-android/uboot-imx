@@ -11,6 +11,7 @@
 #include <common.h>
 
 int copy_uboot_to_ram(void);
+int copy_fdt_to_ram(void);
 int clear_bss(void);
 int do_elf_reloc_fixups(void);
 

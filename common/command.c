@@ -11,7 +11,6 @@
 
 #include <common.h>
 #include <command.h>
-#include <console.h>
 #include <linux/ctype.h>
 
 /*
@@ -85,7 +84,6 @@ int _do_help(cmd_tbl_t *cmd_start, int cmd_items, cmd_tbl_t *cmdtp, int flag,
 /* find command table entry for a command */
 cmd_tbl_t *find_cmd_tbl(const char *cmd, cmd_tbl_t *table, int table_len)
 {
-#ifdef CONFIG_CMDLINE
 	cmd_tbl_t *cmdtp;
 	cmd_tbl_t *cmdtp_temp = table;	/* Init value */
 	const char *p;
@@ -112,7 +110,6 @@ cmd_tbl_t *find_cmd_tbl(const char *cmd, cmd_tbl_t *table, int table_len)
 	if (n_found == 1) {			/* exactly one match */
 		return cmdtp_temp;
 	}
-#endif /* CONFIG_CMDLINE */
 
 	return NULL;	/* not found or ambiguous command */
 }
@@ -164,7 +161,6 @@ int var_complete(int argc, char * const argv[], char last_char, int maxv, char *
 
 static int complete_cmdv(int argc, char * const argv[], char last_char, int maxv, char *cmdv[])
 {
-#ifdef CONFIG_CMDLINE
 	cmd_tbl_t *cmdtp = ll_entry_start(cmd_tbl_t, cmd);
 	const int count = ll_entry_count(cmd_tbl_t, cmd);
 	const cmd_tbl_t *cmdend = cmdtp + count;
@@ -234,9 +230,6 @@ static int complete_cmdv(int argc, char * const argv[], char last_char, int maxv
 
 	cmdv[n_found] = NULL;
 	return n_found;
-#else
-	return 0;
-#endif
 }
 
 static int make_argv(char *s, int argvsz, char *argv[])
@@ -452,7 +445,7 @@ void fixup_cmdtable(cmd_tbl_t *cmdtp, int size)
 		ulong addr;
 
 		addr = (ulong)(cmdtp->cmd) + gd->reloc_off;
-#ifdef DEBUG_COMMANDS
+#if DEBUG_COMMANDS
 		printf("Command \"%s\": 0x%08lx => 0x%08lx\n",
 		       cmdtp->name, (ulong)(cmdtp->cmd), addr);
 #endif
@@ -499,7 +492,7 @@ static int cmd_call(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	result = (cmdtp->cmd)(cmdtp, flag, argc, argv);
 	if (result)
-		debug("Command failed, result=%d\n", result);
+		debug("Command failed, result=%d", result);
 	return result;
 }
 

@@ -1,9 +1,8 @@
 /*
- * Copyright (C) 2018 Technexion Ltd.
+ * Copyright (C) 2017 Technexion Ltd.
  *
  * Author: Tapani Utriainen <tapani@technexion.com>
  *         Richard Hu <richard.hu@technexion.com>
- *         Alvin Chen <alvin.chen@technexion.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -23,7 +22,7 @@
 #include <miiphy.h>
 #include <netdev.h>
 #include <power/pmic.h>
-#include <power/pfuze3000_pmic.h>
+#include <power/pfuze300_pmic.h>
 #include <asm/arch/clock_slice.h>
 #ifdef CONFIG_SYS_I2C_MXC
 #include <i2c.h>
@@ -40,6 +39,12 @@
 #include <mxsfb.h>
 #endif
 
+#ifdef CONFIG_FSL_FASTBOOT
+#include <fsl_fastboot.h>
+#ifdef CONFIG_ANDROID_RECOVERY
+#include <recovery.h>
+#endif
+#endif /*CONFIG_FSL_FASTBOOT*/
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -132,7 +137,6 @@ static void setup_iomux_ddr_type_detection(void)
 
 int dram_init(void)
 {
-
 	unsigned int ddr_size;
 
 	setup_iomux_ddr_type_detection();
@@ -355,8 +359,8 @@ static iomux_v3_cfg_t const fec1_pads[] = {
 	MX7D_PAD_ENET1_RGMII_RD2__ENET1_RGMII_RD2 | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
 	MX7D_PAD_ENET1_RGMII_RD3__ENET1_RGMII_RD3 | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
 	MX7D_PAD_ENET1_RGMII_RX_CTL__ENET1_RGMII_RX_CTL | MUX_PAD_CTRL(ENET_RX_PAD_CTRL),
-	MX7D_PAD_SD3_STROBE__GPIO6_IO10 | MUX_PAD_CTRL(NO_PAD_CTRL), // Interrupt
-	MX7D_PAD_SD3_RESET_B__GPIO6_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL), // Reset pin
+        MX7D_PAD_SD3_STROBE__GPIO6_IO10 | MUX_PAD_CTRL(NO_PAD_CTRL), // Interrupt
+        MX7D_PAD_SD3_RESET_B__GPIO6_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL), // Reset pin
 };
 
 #define FEC1_RST_GPIO	IMX_GPIO_NR(6, 11)
@@ -388,7 +392,7 @@ static void setup_iomux_uart(void)
 #define USDHC1_CD_GPIO	IMX_GPIO_NR(5, 0)
 
 static struct fsl_esdhc_cfg usdhc_cfg[2] = {
-	{USDHC3_BASE_ADDR},
+ 	{USDHC3_BASE_ADDR},
 	{USDHC1_BASE_ADDR},
 };
 
@@ -411,7 +415,7 @@ int board_mmc_getcd(struct mmc *mmc)
 
 int board_mmc_init(bd_t *bis)
 {
-	int ret;
+int ret;
 	u32 index = 0;
 
 	/*
@@ -582,8 +586,8 @@ int board_early_init_f(void)
 	return 0;
 }
 
-#define BT_RST_GPIO		IMX_GPIO_NR(4, 18)
-#define WIFI_RST_GPIO	IMX_GPIO_NR(4, 16)
+#define BT_RST_GPIO		IMX_GPIO_NR(6, 16)
+#define WIFI_RST_GPIO	IMX_GPIO_NR(6, 17)
 
 int board_init(void)
 {
@@ -628,39 +632,39 @@ int power_init_board(void)
 	int ret;
 	unsigned int reg, rev_id;
 
-	ret = power_pfuze3000_init(I2C_PMIC);
+	ret = power_pfuze300_init(I2C_PMIC);
 	if (ret)
 		return ret;
 
-	p = pmic_get("PFUZE3000");
+	p = pmic_get("PFUZE300");
 	ret = pmic_probe(p);
 	if (ret)
 		return ret;
 
-	pmic_reg_read(p, PFUZE3000_DEVICEID, &reg);
-	pmic_reg_read(p, PFUZE3000_REVID, &rev_id);
-	printf("PMIC: PFUZE3000 DEV_ID=0x%x REV_ID=0x%x\n", reg, rev_id);
+	pmic_reg_read(p, PFUZE300_DEVICEID, &reg);
+	pmic_reg_read(p, PFUZE300_REVID, &rev_id);
+	printf("PMIC: PFUZE300 DEV_ID=0x%x REV_ID=0x%x\n", reg, rev_id);
 
 	/* disable Low Power Mode during standby mode */
-	pmic_reg_read(p, PFUZE3000_LDOGCTL, &reg);
+	pmic_reg_read(p, PFUZE300_LDOGCTL, &reg);
 	reg |= 0x1;
-	pmic_reg_write(p, PFUZE3000_LDOGCTL, reg);
+	pmic_reg_write(p, PFUZE300_LDOGCTL, reg);
 
 	/* SW1A/1B mode set to APS/APS */
 	reg = 0x8;
-	pmic_reg_write(p, PFUZE3000_SW1AMODE, reg);
-	pmic_reg_write(p, PFUZE3000_SW1BMODE, reg);
+	pmic_reg_write(p, PFUZE300_SW1AMODE, reg);
+	pmic_reg_write(p, PFUZE300_SW1BMODE, reg);
 
 	/* SW1A/1B standby voltage set to 1.025V */
 	reg = 0xd;
-	pmic_reg_write(p, PFUZE3000_SW1ASTBY, reg);
-	pmic_reg_write(p, PFUZE3000_SW1BSTBY, reg);
+	pmic_reg_write(p, PFUZE300_SW1ASTBY, reg);
+	pmic_reg_write(p, PFUZE300_SW1BSTBY, reg);
 
-	/* set SW1B normal voltage to 0.975V */
-	pmic_reg_read(p, PFUZE3000_SW1BVOLT, &reg);
+	/* decrease SW1B normal voltage to 0.975V */
+	pmic_reg_read(p, PFUZE300_SW1BVOLT, &reg);
 	reg &= ~0x1f;
-	reg |= PFUZE3000_SW1AB_SETP(975);
-	pmic_reg_write(p, PFUZE3000_SW1BVOLT, reg);
+	reg |= PFUZE300_SW1AB_SETP(975);
+	pmic_reg_write(p, PFUZE300_SW1BVOLT, reg);
 
 	return 0;
 }
@@ -668,25 +672,17 @@ int power_init_board(void)
 
 int board_late_init(void)
 {
-#ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
-	char strsom[16] = "";
-#endif
 #ifdef CONFIG_CMD_BMODE
 	add_board_boot_modes(board_boot_modes);
-#endif /* CONFIG_CMD_BMODE */
+#endif
 
 #ifdef CONFIG_ENV_IS_IN_MMC
 	board_late_mmc_init();
-#endif /* CONFIG_ENV_IS_IN_MMC */
+#endif
 
 	imx_iomux_v3_setup_multiple_pads(wdog_pads, ARRAY_SIZE(wdog_pads));
 
 	set_wdog_reset((struct wdog_regs *)WDOG1_BASE_ADDR);
-
-#ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
-	sprintf(strsom, "%s-pico", get_som_type());
-	setenv("som", strsom);
-#endif
 
 	return 0;
 }
@@ -704,13 +700,6 @@ int checkboard(void)
 
 	return 0;
 }
-
-#if defined(CONFIG_OF_LIBFDT) && defined(CONFIG_OF_BOARD_SETUP)
-int ft_board_setup(void *blob, bd_t *bd)
-{
-	return 0;
-}
-#endif
 
 #ifdef CONFIG_USB_EHCI_MX7
 iomux_v3_cfg_t const usb_otg1_pads[] = {
@@ -739,4 +728,90 @@ int board_ehci_hcd_init(int port)
 	return 0;
 }
 #endif
+
+#ifdef CONFIG_FSL_FASTBOOT
+
+void board_fastboot_setup(void)
+{
+	switch (get_boot_device()) {
+#if defined(CONFIG_FASTBOOT_STORAGE_MMC)
+	case SD1_BOOT:
+	case MMC1_BOOT:
+		if (!getenv("fastboot_dev"))
+			setenv("fastboot_dev", "mmc0");
+		if (!getenv("bootcmd"))
+            setenv("bootcmd", "run tn_boot_init; boota mmc0");
+		break;
+	case SD3_BOOT:
+	case MMC3_BOOT:
+		if (!getenv("fastboot_dev"))
+			setenv("fastboot_dev", "mmc1");
+		if (!getenv("bootcmd"))
+            setenv("bootcmd", "run tn_boot_init; boota mmc1");
+		break;
+#endif /*CONFIG_FASTBOOT_STORAGE_MMC*/
+	default:
+		printf("unsupported boot devices\n");
+		break;
+	}
+}
+
+#ifdef CONFIG_ANDROID_RECOVERY
+
+/* Use S3 button for recovery key */
+#define GPIO_VOL_DN_KEY IMX_GPIO_NR(5, 10)
+iomux_v3_cfg_t const recovery_key_pads[] = {
+	(MX7D_PAD_SD2_WP__GPIO5_IO10 | MUX_PAD_CTRL(BUTTON_PAD_CTRL)),
+};
+
+int check_recovery_cmd_file(void)
+{
+	int button_pressed = 0;
+	int recovery_mode = 0;
+
+	recovery_mode = recovery_check_and_clean_flag();
+
+	/* Check Recovery Combo Button press or not. */
+	imx_iomux_v3_setup_multiple_pads(recovery_key_pads,
+		ARRAY_SIZE(recovery_key_pads));
+
+	gpio_direction_input(GPIO_VOL_DN_KEY);
+
+	if (gpio_get_value(GPIO_VOL_DN_KEY) == 0) { /* VOL_DN key is low assert */
+		button_pressed = 1;
+		printf("Recovery key pressed\n");
+	}
+
+	return recovery_mode || button_pressed;
+}
+
+void board_recovery_setup(void)
+{
+	int bootdev = get_boot_device();
+
+	switch (bootdev) {
+#if defined(CONFIG_FASTBOOT_STORAGE_MMC)
+	case SD1_BOOT:
+	case MMC1_BOOT:
+		if (!getenv("bootcmd_android_recovery"))
+			setenv("bootcmd_android_recovery", "boota mmc0 recovery");
+		break;
+	case SD3_BOOT:
+	case MMC3_BOOT:
+		if (!getenv("bootcmd_android_recovery"))
+			setenv("bootcmd_android_recovery", "boota mmc1 recovery");
+		break;
+#endif /*CONFIG_FASTBOOT_STORAGE_MMC*/
+	default:
+		printf("Unsupported bootup device for recovery: dev: %d\n",
+			bootdev);
+		return;
+	}
+
+	printf("setup env for recovery..\n");
+	setenv("bootcmd", "run bootcmd_android_recovery");
+}
+#endif /*CONFIG_ANDROID_RECOVERY*/
+
+#endif /*CONFIG_FSL_FASTBOOT*/
 

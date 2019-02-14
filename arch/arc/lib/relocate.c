@@ -6,10 +6,7 @@
 
 #include <common.h>
 #include <elf.h>
-#include <asm-generic/sections.h>
-
-extern ulong __image_copy_start;
-extern ulong __ivt_end;
+#include <asm/sections.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -40,9 +37,6 @@ int do_elf_reloc_fixups(void)
 	Elf32_Rela *re_src = (Elf32_Rela *)(&__rel_dyn_start);
 	Elf32_Rela *re_end = (Elf32_Rela *)(&__rel_dyn_end);
 
-	debug("Section .rela.dyn is located at %08x-%08x\n",
-	      (unsigned int)re_src, (unsigned int)re_end);
-
 	Elf32_Addr *offset_ptr_rom, *last_offset = NULL;
 	Elf32_Addr *offset_ptr_ram;
 
@@ -57,10 +51,6 @@ int do_elf_reloc_fixups(void)
 			/* Switch to the in-RAM version */
 			offset_ptr_ram = (Elf32_Addr *)((ulong)offset_ptr_rom +
 							gd->reloc_off);
-
-			debug("Patching value @ %08x (relocated to %08x)\n",
-			      (unsigned int)offset_ptr_rom,
-			      (unsigned int)offset_ptr_ram);
 
 			/*
 			 * Use "memcpy" because target location might be

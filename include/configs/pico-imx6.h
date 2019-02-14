@@ -1,23 +1,26 @@
 /*
- * Copyright (C) 2018 Technexion Ltd.
+ * Copyright (C) 2015 Technexion Ltd.
  *
  * Author: Richard Hu <richard.hu@technexion.com>
  *
- * SPDX-License-Identifier:    GPL-2.0+
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#ifndef __PICO_IMX6_CONFIG_H
-#define __PICO_IMX6_CONFIG_H
+#ifndef __CONFIG_H
+#define __CONFIG_H
 
 #include "mx6_common.h"
 #include <asm/arch/imx-regs.h>
 #include <asm/imx-common/gpio.h>
 #include <linux/sizes.h>
 
-#ifdef CONFIG_SPL
+#define CONFIG_SPL_LIBCOMMON_SUPPORT
+#define CONFIG_SPL_MMC_SUPPORT
+#define CONFIG_SPL_FAT_SUPPORT
 #include "imx6_spl.h"
-#endif
 
+#define CONFIG_MX6
+#define CONFIG_DISPLAY_CPUINFO
 #define CONFIG_DISPLAY_BOARDINFO_LATE  /* display board info (after reloc) */
 
 #define CONFIG_CMDLINE_TAG
@@ -25,14 +28,17 @@
 #define CONFIG_INITRD_TAG
 #define CONFIG_REVISION_TAG
 
+#define CONFIG_SYS_GENERIC_BOARD
 #undef CONFIG_LDO_BYPASS_CHECK
 
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		(10 * SZ_1M)
 
+#define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_BOARD_LATE_INIT
 #define CONFIG_MXC_GPIO
 
+#define CONFIG_MXC_UART
 #define CONFIG_MXC_UART_BASE		UART1_BASE
 
 /* allow to overwrite serial and ethaddr */
@@ -41,9 +47,14 @@
 #define CONFIG_BAUDRATE			115200
 
 /* Command definition */
+#include <config_cmd_default.h>
+
 #undef CONFIG_CMD_IMLS
 
 #define CONFIG_CMD_BMODE
+#define CONFIG_CMD_SETEXPR
+
+#define CONFIG_BOOTDELAY		1
 
 #define CONFIG_SYS_MEMTEST_START	0x10000000
 #define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + 500 * SZ_1M)
@@ -51,13 +62,11 @@
 #define CONFIG_SYS_TEXT_BASE		0x17800000
 
 /* I2C Configs */
+#define CONFIG_CMD_I2C
 #define CONFIG_SYS_I2C
 #define CONFIG_SYS_I2C_MXC
-#define CONFIG_SYS_I2C_MXC_I2C1         /* enable I2C bus 1 */
-#define CONFIG_SYS_I2C_MXC_I2C2         /* enable I2C bus 2 */
-#define CONFIG_SYS_I2C_MXC_I2C3         /* enable I2C bus 3 */
 #define CONFIG_SYS_I2C_SPEED		100000
-#define CONFIG_I2C_PMIC			1
+#define CONFIG_I2C_PMIC			2
 
 /* PMIC */
 #define CONFIG_POWER
@@ -66,17 +75,33 @@
 #define CONFIG_POWER_PFUZE100_I2C_ADDR	0x08
 
 /* MMC Configuration */
+#define CONFIG_FSL_ESDHC
+#define CONFIG_FSL_USDHC
 #define CONFIG_SYS_FSL_USDHC_NUM	2
 #define CONFIG_SYS_FSL_ESDHC_ADDR	0
 
+#define CONFIG_MMC
+#define CONFIG_CMD_MMC
+#define CONFIG_GENERIC_MMC
+#define CONFIG_BOUNCE_BUFFER
+#define CONFIG_CMD_EXT2
+#define CONFIG_CMD_FAT
+#define CONFIG_DOS_PARTITION
+
 /* USB Configs */
+#define CONFIG_CMD_USB
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_MX6
+#define CONFIG_USB_STORAGE
 #define CONFIG_USB_MAX_CONTROLLER_COUNT	2
 #define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
 #define CONFIG_MXC_USB_FLAGS		0
 
 /* Ethernet Configuration */
+#define CONFIG_CMD_PING
+#define CONFIG_CMD_DHCP
+#define CONFIG_CMD_MII
+#define CONFIG_CMD_NET
 #define CONFIG_FEC_MXC
 #define CONFIG_MII
 #define IMX_FEC_BASE			ENET_BASE_ADDR
@@ -87,7 +112,12 @@
 #define CONFIG_PHY_ATHEROS
 
 /* Framebuffer */
+#define CONFIG_VIDEO
 #define CONFIG_VIDEO_IPUV3
+#define CONFIG_CFB_CONSOLE
+#define CONFIG_VGA_AS_SINGLE_DEVICE
+#define CONFIG_SYS_CONSOLE_IS_IN_ENV
+#define CONFIG_SYS_CONSOLE_OVERWRITE_ROUTINE
 #define CONFIG_VIDEO_BMP_RLE8
 #define CONFIG_SPLASH_SCREEN
 #define CONFIG_SPLASH_SCREEN_ALIGN
@@ -111,14 +141,16 @@
 	"console=ttymxc0\0" \
 	"splashpos=m,m\0" \
 	"som=autodetect\0" \
-	"baseboard=pi\0" \
-	"wifi_module=qca\0" \
-	"default_baseboard=pi\0" \
+	"baseboard=dwarf\0" \
+	"default_baseboard=dwarf\0" \
 	"fdtfile=undefined\0" \
 	"fdt_high=0xffffffff\0" \
 	"initrd_high=0xffffffff\0" \
+	"bootramdisk=uramdisk.img\0" \
+	"initrdaddr=0x13000000\0" \
 	"fdt_addr=0x18000000\0" \
-	"ip_dyn=no\0" \
+	"bootargs_base=console=ttymxc0,115200\0" \
+	"boot_fdt=try\0" \
 	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
 	"mmcpart=1\0" \
 	"searchbootdev=" \
@@ -128,7 +160,7 @@
 			"setenv mmcroot /dev/mmcblk0p2 rootwait rw; " \
 		"fi\0" \
 	"mmcargs=setenv bootargs console=${console},${baudrate} " \
-		"root=${mmcroot}; run videoargs\0" \
+		"root=${mmcroot}; ${bootargs_base}; run videoargs\0" \
 	"fdtfile_autodetect=on\0" \
 	"bootdev_autodetect=on\0" \
 	"display_autodetect=on\0" \
@@ -169,12 +201,8 @@
 	"bootscript=echo Running bootscript from mmc ...; " \
 		"source\0" \
 	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
-	"setfdt=" \
-		"if test ${wifi_module} = qca; then " \
-			"setenv fdtfile ${som}-${wifi_module}_${baseboard}.dtb; " \
-		"else " \
-			"setenv fdtfile ${som}_${baseboard}.dtb;" \
-		"fi\0" \
+	"loadramdisk=fatload mmc ${mmcdev}:${mmcpart} ${initrdaddr} ${bootramdisk}\0" \
+	"setfdt=setenv fdtfile ${som}_${baseboard}.dtb\0" \
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdtfile}\0" \
 	"mmcboot=echo Booting from mmc ...; " \
 		"run searchbootdev; " \
@@ -203,33 +231,6 @@
 	"loadbootenv=fatload mmc ${mmcdev} ${loadaddr} ${bootenv}\0" \
 	"importbootenv=echo Importing environment from mmc ...; " \
 		"env import -t -r $loadaddr $filesize\0" \
-	"netargs=setenv bootargs console=${console},${baudrate} " \
-		"root=/dev/nfs " \
-	"ip=${ipaddr} nfsroot=${serverip}:${nfsroot},v3,tcp rw ${displayinfo} \0" \
-		"netboot=echo Booting from net ...; " \
-		"if test ${ip_dyn} = yes; then " \
-			"setenv get_cmd dhcp; " \
-		"else " \
-			"setenv get_cmd tftp; " \
-		"fi; " \
-		"run loadbootenv; " \
-		"run importbootenv; " \
-		"run setfdt; " \
-		"run netargs; " \
-		"${get_cmd} ${loadaddr} ${image}; " \
-		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-			"if ${get_cmd} ${fdt_addr} ${fdtfile}; then " \
-				"bootz ${loadaddr} - ${fdt_addr}; " \
-			"else " \
-				"if test ${boot_fdt} = try; then " \
-					"bootz; " \
-				"else " \
-					"echo WARN: Cannot load the DT; " \
-				"fi; " \
-			"fi; " \
-		"else " \
-			"bootz; " \
-		"fi;\0"
 
 #define CONFIG_BOOTCOMMAND \
 	   "mmc dev ${mmcdev}; if mmc rescan; then " \
@@ -243,17 +244,26 @@
 		   "fi;" \
 		   "if run loadbootscript; then " \
 			   "run bootscript; " \
-		   "else " \
-			   "if run loadimage; then " \
-				   "run mmcboot; " \
-			   "else run netboot; " \
+		   "fi;" \
+		   "if run loadramdisk; then " \
+			   "setenv rootdevice ${ramdisk_dev}; " \
+			   "setenv mmcboot \'run mmcargs; bootz ${loadaddr} ${initrdaddr} ${fdt_addr}\'; " \
+		   "fi;" \
+		   "if run loadimage; then " \
+			   "run setfdt; " \
+			   "run loadfdt; " \
+			   "run mmcboot; " \
+			   "else " \
+				   "echo WARN: Cannot load kernel from boot media; " \
 			   "fi; " \
-		   "fi; " \
-	   "else run netboot; fi"
+		   "fi; "
 
 /* Miscellaneous configurable options */
 #define CONFIG_SYS_LONGHELP
+#define CONFIG_SYS_HUSH_PARSER
 #define CONFIG_AUTO_COMPLETE
+#define CONFIG_SYS_CBSIZE		256
+#define CONFIG_SYS_MAXARGS	       16
 #define CONFIG_SYS_BARGSIZE CONFIG_SYS_CBSIZE
 
 #define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
@@ -273,10 +283,25 @@
 #define CONFIG_SYS_INIT_SP_ADDR \
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 
+/* FLASH and environment organization */
+#define CONFIG_SYS_NO_FLASH
+
 #define CONFIG_ENV_SIZE			(8 * 1024)
 
 #define CONFIG_ENV_IS_IN_MMC
 #define CONFIG_ENV_OFFSET		(6 * 64 * 1024)
 #define CONFIG_SYS_MMC_ENV_DEV		0
 
-#endif  /* __PICO_IMX6_CONFIG_H */
+#define CONFIG_OF_LIBFDT
+#define CONFIG_CMD_BOOTZ
+
+#ifndef CONFIG_SYS_DCACHE_OFF
+#define CONFIG_CMD_CACHE
+#endif
+
+#ifdef CONFIG_ANDROID_SUPPORT
+#define CONFIG_OF_LOAD_MANUALLY
+#include "pico-imx6-android.h"
+#endif
+
+#endif			       /* __CONFIG_H * */

@@ -46,14 +46,13 @@ static u32 gpmc_net_config[GPMC_MAX_REG] = {
 };
 
 static const struct ns16550_platdata devkit8000_serial = {
-	.base = OMAP34XX_UART3,
-	.reg_shift = 2,
-	.clock = V_NS16550_CLK,
-	.fcr = UART_FCR_DEFVAL,
+	OMAP34XX_UART3,
+	2,
+	V_NS16550_CLK
 };
 
 U_BOOT_DEVICE(devkit8000_uart) = {
-	"ns16550_serial",
+	"serial_omap",
 	&devkit8000_serial
 };
 
@@ -115,7 +114,7 @@ int misc_init_r(void)
 	}
 #endif
 
-	omap_die_id_display();
+	dieid_num_r();
 
 	return 0;
 }
@@ -158,7 +157,7 @@ int board_eth_init(bd_t *bis)
 
 #ifdef CONFIG_SPL_OS_BOOT
 /*
- * Do board specific preparation before SPL
+ * Do board specific preperation before SPL
  * Linux boot
  */
 void spl_board_prepare_for_linux(void)

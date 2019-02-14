@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2014       Panasonic Corporation
- * Copyright (C) 2014-2015  Masahiro Yamada <yamada.masahiro@socionext.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -23,6 +22,7 @@ static void __iomem *denali_flash_reg =
 			(void __iomem *)CONFIG_SYS_NAND_REGS_BASE;
 
 static const int flash_bank;
+static uint8_t page_buffer[NAND_MAX_PAGESIZE];
 static int page_size, oob_size, pages_per_block;
 
 static void index_addr(uint32_t address, uint32_t data)
@@ -41,7 +41,7 @@ static int wait_for_irq(uint32_t irq_mask)
 
 		if (intr_status & INTR_STATUS__ECC_UNCOR_ERR) {
 			debug("Uncorrected ECC detected\n");
-			return -EBADMSG;
+			return -EIO;
 		}
 
 		if (intr_status & irq_mask)
@@ -144,15 +144,15 @@ static int nand_read_page(void *buf, int page)
 	return 0;
 }
 
-static int nand_block_isbad(void *buf, int block)
+static int nand_block_isbad(int block)
 {
 	int ret;
 
-	ret = nand_read_oob(buf, block * pages_per_block);
+	ret = nand_read_oob(page_buffer, block * pages_per_block);
 	if (ret < 0)
 		return ret;
 
-	return *((uint8_t *)buf + CONFIG_SYS_NAND_BAD_BLOCK_POS) != 0xff;
+	return page_buffer[CONFIG_SYS_NAND_BAD_BLOCK_POS] != 0xff;
 }
 
 /* nand_init() - initialize data to make nand usable by SPL */
@@ -184,7 +184,7 @@ int nand_spl_load_image(uint32_t offs, unsigned int size, void *dst)
 
 	while (size) {
 		if (force_bad_block_check || page == 0) {
-			ret = nand_block_isbad(dst, block);
+			ret = nand_block_isbad(block);
 			if (ret < 0)
 				return ret;
 
@@ -196,16 +196,24 @@ int nand_spl_load_image(uint32_t offs, unsigned int size, void *dst)
 
 		force_bad_block_check = 0;
 
-		ret = nand_read_page(dst, block * pages_per_block + page);
-		if (ret < 0)
-			return ret;
-
-		readlen = min(page_size - column, (int)size);
-
-		if (unlikely(column)) {
+		if (unlikely(column || size < page_size)) {
 			/* Partial page read */
-			memmove(dst, dst + column, readlen);
+			ret = nand_read_page(page_buffer,
+					     block * pages_per_block + page);
+			if (ret < 0)
+				return ret;
+
+			readlen = min(page_size - column, (int)size);
+			memcpy(dst, page_buffer, readlen);
+
 			column = 0;
+		} else {
+			ret = nand_read_page(dst,
+					     block * pages_per_block + page);
+			if (ret < 0)
+				return ret;
+
+			readlen = page_size;
 		}
 
 		size -= readlen;

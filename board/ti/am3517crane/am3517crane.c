@@ -47,7 +47,7 @@ int misc_init_r(void)
 	i2c_init(CONFIG_SYS_OMAP24_I2C_SPEED, CONFIG_SYS_OMAP24_I2C_SLAVE);
 #endif
 
-	omap_die_id_display();
+	dieid_num_r();
 
 	return 0;
 }

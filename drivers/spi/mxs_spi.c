@@ -12,9 +12,8 @@
 
 #include <common.h>
 #include <malloc.h>
-#include <memalign.h>
 #include <spi.h>
-#include <linux/errno.h>
+#include <asm/errno.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>

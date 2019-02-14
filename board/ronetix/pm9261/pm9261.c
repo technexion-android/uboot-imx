@@ -14,6 +14,7 @@
 #include <asm/gpio.h>
 #include <asm/arch/at91sam9_smc.h>
 #include <asm/arch/at91_common.h>
+#include <asm/arch/at91_pmc.h>
 #include <asm/arch/at91_rstc.h>
 #include <asm/arch/at91_matrix.h>
 #include <asm/arch/clk.h>
@@ -40,6 +41,7 @@ static void pm9261_nand_hw_init(void)
 	unsigned long csa;
 	struct at91_smc *smc = (struct at91_smc *)ATMEL_BASE_SMC;
 	struct at91_matrix *matrix = (struct at91_matrix *)ATMEL_BASE_MATRIX;
+	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
 
 	/* Enable CS3 */
 	csa = readl(&matrix->csa) | AT91_MATRIX_CSA_EBI_CS3A;
@@ -67,8 +69,9 @@ static void pm9261_nand_hw_init(void)
 		AT91_SMC_MODE_TDF_CYCLE(2),
 		&smc->cs[3].mode);
 
-	at91_periph_clk_enable(ATMEL_ID_PIOA);
-	at91_periph_clk_enable(ATMEL_ID_PIOC);
+	writel(1 << ATMEL_ID_PIOA |
+		1 << ATMEL_ID_PIOC,
+		&pmc->pcer);
 
 	/* Configure RDY/BSY */
 	gpio_direction_input(CONFIG_SYS_NAND_READY_PIN);
@@ -86,6 +89,7 @@ static void pm9261_nand_hw_init(void)
 static void pm9261_dm9000_hw_init(void)
 {
 	struct at91_smc *smc = (struct at91_smc *)ATMEL_BASE_SMC;
+	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
 
 	/* Configure SMC CS2 for DM9000 */
 	writel(AT91_SMC_SETUP_NWE(2) | AT91_SMC_SETUP_NCS_WR(0) |
@@ -106,7 +110,7 @@ static void pm9261_dm9000_hw_init(void)
 		&smc->cs[2].mode);
 
 	/* Configure Interrupt pin as input, no pull-up */
-	at91_periph_clk_enable(ATMEL_ID_PIOA);
+	writel(1 << ATMEL_ID_PIOA, &pmc->pcer);
 	at91_set_pio_input(AT91_PIO_PORTA, 24, 0);
 }
 #endif
@@ -141,6 +145,8 @@ void lcd_disable(void)
 
 static void pm9261_lcd_hw_init(void)
 {
+	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
+
 	at91_set_a_periph(AT91_PIO_PORTB, 1, 0);	/* LCDHSYNC */
 	at91_set_a_periph(AT91_PIO_PORTB, 2, 0);	/* LCDDOTCK */
 	at91_set_a_periph(AT91_PIO_PORTB, 3, 0);	/* LCDDEN */
@@ -164,7 +170,7 @@ static void pm9261_lcd_hw_init(void)
 	at91_set_b_periph(AT91_PIO_PORTB, 27, 0);	/* LCDD22 */
 	at91_set_b_periph(AT91_PIO_PORTB, 28, 0);	/* LCDD23 */
 
-	at91_system_clk_enable(AT91_PMC_HCK1);
+	writel(1 << 17, &pmc->scer); /* LCD controller Clock, AT91SAM9261 only */
 
 	gd->fb_base = ATMEL_BASE_SRAM;
 }
@@ -194,7 +200,7 @@ void lcd_show_board_info(void)
 
 	nand_size = 0;
 	for (i = 0; i < CONFIG_SYS_MAX_NAND_DEVICE; i++)
-		nand_size += nand_info[i]->size;
+		nand_size += nand_info[i].size;
 
 	flash_size = 0;
 	for (i = 0; i < CONFIG_SYS_MAX_FLASH_BANKS; i++)
@@ -218,8 +224,12 @@ void lcd_show_board_info(void)
 
 int board_early_init_f(void)
 {
-	at91_periph_clk_enable(ATMEL_ID_PIOA);
-	at91_periph_clk_enable(ATMEL_ID_PIOC);
+	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
+
+	/* Enable clocks for some PIOs */
+	writel(1 << ATMEL_ID_PIOA |
+		1 << ATMEL_ID_PIOC,
+		&pmc->pcer);
 
 	at91_seriald_hw_init();
 
@@ -278,7 +288,7 @@ void reset_phy(void)
 	 * Initialize ethernet HW addr prior to starting Linux,
 	 * needed for nfsroot
 	 */
-	eth_init();
+	eth_init(gd->bd);
 #endif
 }
 #endif

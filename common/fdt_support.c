@@ -16,7 +16,6 @@
 #include <libfdt.h>
 #include <fdt_support.h>
 #include <exports.h>
-#include <fdtdec.h>
 
 /**
  * fdt_getprop_u32_default_node - Return a node's property or a default
@@ -131,6 +130,18 @@ static int fdt_fixup_stdout(void *fdt, int chosenoff)
 			      OF_STDOUT_PATH, strlen(OF_STDOUT_PATH) + 1);
 }
 #elif defined(CONFIG_OF_STDOUT_VIA_ALIAS) && defined(CONFIG_CONS_INDEX)
+static void fdt_fill_multisername(char *sername, size_t maxlen)
+{
+	const char *outname = stdio_devices[stdout]->name;
+
+	if (strcmp(outname, "serial") > 0)
+		strncpy(sername, outname, maxlen);
+
+	/* eserial? */
+	if (strcmp(outname + 1, "serial") > 0)
+		strncpy(sername, outname + 1, maxlen);
+}
+
 static int fdt_fixup_stdout(void *fdt, int chosenoff)
 {
 	int err;
@@ -140,35 +151,32 @@ static int fdt_fixup_stdout(void *fdt, int chosenoff)
 	int len;
 	char tmp[256]; /* long enough */
 
-	sprintf(sername, "serial%d", CONFIG_CONS_INDEX - 1);
+	fdt_fill_multisername(sername, sizeof(sername) - 1);
+	if (!sername[0])
+		sprintf(sername, "serial%d", CONFIG_CONS_INDEX - 1);
 
 	aliasoff = fdt_path_offset(fdt, "/aliases");
 	if (aliasoff < 0) {
 		err = aliasoff;
-		goto noalias;
+		goto error;
 	}
 
 	path = fdt_getprop(fdt, aliasoff, sername, &len);
 	if (!path) {
 		err = len;
-		goto noalias;
+		goto error;
 	}
 
 	/* fdt_setprop may break "path" so we copy it to tmp buffer */
 	memcpy(tmp, path, len);
 
 	err = fdt_setprop(fdt, chosenoff, "linux,stdout-path", tmp, len);
+error:
 	if (err < 0)
 		printf("WARNING: could not set linux,stdout-path %s.\n",
 		       fdt_strerror(err));
 
 	return err;
-
-noalias:
-	printf("WARNING: %s: could not read %s alias: %s\n",
-	       __func__, sername, fdt_strerror(err));
-
-	return 0;
 }
 #else
 static int fdt_fixup_stdout(void *fdt, int chosenoff)
@@ -186,31 +194,6 @@ static inline int fdt_setprop_uxx(void *fdt, int nodeoffset, const char *name,
 		return fdt_setprop_u32(fdt, nodeoffset, name, (uint32_t)val);
 }
 
-int fdt_root(void *fdt)
-{
-	char *serial;
-	int err;
-
-	err = fdt_check_header(fdt);
-	if (err < 0) {
-		printf("fdt_root: %s\n", fdt_strerror(err));
-		return err;
-	}
-
-	serial = getenv("serial#");
-	if (serial) {
-		err = fdt_setprop(fdt, 0, "serial-number", serial,
-				  strlen(serial) + 1);
-
-		if (err < 0) {
-			printf("WARNING: could not set serial-number %s.\n",
-			       fdt_strerror(err));
-			return err;
-		}
-	}
-
-	return 0;
-}
 
 int fdt_initrd(void *fdt, ulong initrd_start, ulong initrd_end)
 {
@@ -381,7 +364,6 @@ void do_fixup_by_compat_u32(void *fdt, const char *compat,
 	do_fixup_by_compat(fdt, compat, prop, &tmp, 4, create);
 }
 
-#ifdef CONFIG_ARCH_FIXUP_FDT_MEMORY
 /*
  * fdt_pack_reg - pack address and size array into the "reg"-suitable stream
  */
@@ -447,9 +429,6 @@ int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
 		return err;
 	}
 
-	if (!banks)
-		return 0;
-
 	len = fdt_pack_reg(blob, tmp, start, size, banks);
 
 	err = fdt_setprop(blob, nodeoffset, "reg", tmp, len);
@@ -460,7 +439,6 @@ int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
 	}
 	return 0;
 }
-#endif
 
 int fdt_fixup_memory(void *blob, u64 start, u64 size)
 {
@@ -469,63 +447,53 @@ int fdt_fixup_memory(void *blob, u64 start, u64 size)
 
 void fdt_fixup_ethernet(void *fdt)
 {
-	int i, j, prop;
-	char *tmp, *end;
+	int node, i, j;
+	char enet[16], *tmp, *end;
 	char mac[16];
 	const char *path;
-	unsigned char mac_addr[ARP_HLEN];
-	int offset;
+	unsigned char mac_addr[6];
 
-	if (fdt_path_offset(fdt, "/aliases") < 0)
+	node = fdt_path_offset(fdt, "/aliases");
+	if (node < 0)
 		return;
 
-	/* Cycle through all aliases */
-	for (prop = 0; ; prop++) {
-		const char *name;
-		int len = strlen("ethernet");
-
-		/* FDT might have been edited, recompute the offset */
-		offset = fdt_first_property_offset(fdt,
-			fdt_path_offset(fdt, "/aliases"));
-		/* Select property number 'prop' */
-		for (i = 0; i < prop; i++)
-			offset = fdt_next_property_offset(fdt, offset);
-
-		if (offset < 0)
-			break;
-
-		path = fdt_getprop_by_offset(fdt, offset, &name, NULL);
-		if (!strncmp(name, "ethernet", len)) {
-			i = trailing_strtol(name);
-			if (i != -1) {
-				if (i == 0)
-					strcpy(mac, "ethaddr");
-				else
-					sprintf(mac, "eth%daddr", i);
-			} else {
-				continue;
-			}
-			tmp = getenv(mac);
-			if (!tmp)
-				continue;
-
-			for (j = 0; j < 6; j++) {
-				mac_addr[j] = tmp ?
-					      simple_strtoul(tmp, &end, 16) : 0;
-				if (tmp)
-					tmp = (*end) ? end + 1 : end;
-			}
-
-			do_fixup_by_path(fdt, path, "mac-address",
-					 &mac_addr, 6, 0);
-			do_fixup_by_path(fdt, path, "local-mac-address",
-					 &mac_addr, 6, 1);
+	if (!getenv("ethaddr")) {
+		if (getenv("usbethaddr")) {
+			strcpy(mac, "usbethaddr");
+		} else {
+			debug("No ethernet MAC Address defined\n");
+			return;
 		}
+	} else {
+		strcpy(mac, "ethaddr");
+	}
+
+	i = 0;
+	while ((tmp = getenv(mac)) != NULL) {
+		sprintf(enet, "ethernet%d", i);
+		path = fdt_getprop(fdt, node, enet, NULL);
+		if (!path) {
+			debug("No alias for %s\n", enet);
+			sprintf(mac, "eth%daddr", ++i);
+			continue;
+		}
+
+		for (j = 0; j < 6; j++) {
+			mac_addr[j] = tmp ? simple_strtoul(tmp, &end, 16) : 0;
+			if (tmp)
+				tmp = (*end) ? end+1 : end;
+		}
+
+		do_fixup_by_path(fdt, path, "mac-address", &mac_addr, 6, 0);
+		do_fixup_by_path(fdt, path, "local-mac-address",
+				&mac_addr, 6, 1);
+
+		sprintf(mac, "eth%daddr", ++i);
 	}
 }
 
 /* Resize the fdt to its actual size + a bit of padding */
-int fdt_shrink_to_minimum(void *blob, uint extrasize)
+int fdt_shrink_to_minimum(void *blob)
 {
 	int i;
 	uint64_t addr, size;
@@ -553,7 +521,6 @@ int fdt_shrink_to_minimum(void *blob, uint extrasize)
 	actualsize = fdt_off_dt_strings(blob) +
 		fdt_size_dt_strings(blob) + 5 * sizeof(struct fdt_reserve_entry);
 
-	actualsize += extrasize;
 	/* Make it so the fdt ends on a page boundary */
 	actualsize = ALIGN(actualsize + ((uintptr_t)blob & 0xfff), 0x1000);
 	actualsize = actualsize - ((uintptr_t)blob & 0xfff);
@@ -903,8 +870,13 @@ void fdt_fixup_mtdparts(void *blob, void *node_info, int node_info_size)
 {
 	struct node_info *ni = node_info;
 	struct mtd_device *dev;
+	char *parts;
 	int i, idx;
 	int noff;
+
+	parts = getenv("mtdparts");
+	if (!parts)
+		return;
 
 	if (mtdparts_init() != 0)
 		return;
@@ -945,7 +917,7 @@ void fdt_del_node_and_alias(void *blob, const char *alias)
 
 /* Max address size we deal with */
 #define OF_MAX_ADDR_CELLS	4
-#define OF_BAD_ADDR	FDT_ADDR_T_NONE
+#define OF_BAD_ADDR	((u64)-1)
 #define OF_CHECK_COUNTS(na, ns)	((na) > 0 && (na) <= OF_MAX_ADDR_CELLS && \
 			(ns) > 0)
 
@@ -962,41 +934,11 @@ static void of_dump_addr(const char *s, const fdt32_t *addr, int na)
 static void of_dump_addr(const char *s, const fdt32_t *addr, int na) { }
 #endif
 
-/**
- * struct of_bus - Callbacks for bus specific translators
- * @name:	A string used to identify this bus in debug output.
- * @addresses:	The name of the DT property from which addresses are
- *		to be read, typically "reg".
- * @match:	Return non-zero if the node whose parent is at
- *		parentoffset in the FDT blob corresponds to a bus
- *		of this type, otherwise return zero. If NULL a match
- *		is assumed.
- * @count_cells:Count how many cells (be32 values) a node whose parent
- *		is at parentoffset in the FDT blob will require to
- *		represent its address (written to *addrc) & size
- *		(written to *sizec).
- * @map:	Map the address addr from the address space of this
- *		bus to that of its parent, making use of the ranges
- *		read from DT to an array at range. na and ns are the
- *		number of cells (be32 values) used to hold and address
- *		or size, respectively, for this bus. pna is the number
- *		of cells used to hold an address for the parent bus.
- *		Returns the address in the address space of the parent
- *		bus.
- * @translate:	Update the value of the address cells at addr within an
- *		FDT by adding offset to it. na specifies the number of
- *		cells used to hold the address being translated. Returns
- *		zero on success, non-zero on error.
- *
- * Each bus type will include a struct of_bus in the of_busses array,
- * providing implementations of some or all of the functions used to
- * match the bus & handle address translation for its children.
- */
+/* Callbacks for bus specific translators */
 struct of_bus {
 	const char	*name;
 	const char	*addresses;
-	int		(*match)(const void *blob, int parentoffset);
-	void		(*count_cells)(const void *blob, int parentoffset,
+	void		(*count_cells)(void *blob, int parentoffset,
 				int *addrc, int *sizec);
 	u64		(*map)(fdt32_t *addr, const fdt32_t *range,
 				int na, int ns, int pna);
@@ -1004,7 +946,7 @@ struct of_bus {
 };
 
 /* Default translator (generic bus) */
-void of_bus_default_count_cells(const void *blob, int parentoffset,
+void of_bus_default_count_cells(void *blob, int parentoffset,
 					int *addrc, int *sizec)
 {
 	const fdt32_t *prop;
@@ -1050,70 +992,8 @@ static int of_bus_default_translate(fdt32_t *addr, u64 offset, int na)
 	return 0;
 }
 
-#ifdef CONFIG_OF_ISA_BUS
-
-/* ISA bus translator */
-static int of_bus_isa_match(const void *blob, int parentoffset)
-{
-	const char *name;
-
-	name = fdt_get_name(blob, parentoffset, NULL);
-	if (!name)
-		return 0;
-
-	return !strcmp(name, "isa");
-}
-
-static void of_bus_isa_count_cells(const void *blob, int parentoffset,
-				   int *addrc, int *sizec)
-{
-	if (addrc)
-		*addrc = 2;
-	if (sizec)
-		*sizec = 1;
-}
-
-static u64 of_bus_isa_map(fdt32_t *addr, const fdt32_t *range,
-			  int na, int ns, int pna)
-{
-	u64 cp, s, da;
-
-	/* Check address type match */
-	if ((addr[0] ^ range[0]) & cpu_to_be32(1))
-		return OF_BAD_ADDR;
-
-	cp = of_read_number(range + 1, na - 1);
-	s  = of_read_number(range + na + pna, ns);
-	da = of_read_number(addr + 1, na - 1);
-
-	debug("OF: ISA map, cp=%" PRIu64 ", s=%" PRIu64
-	      ", da=%" PRIu64 "\n", cp, s, da);
-
-	if (da < cp || da >= (cp + s))
-		return OF_BAD_ADDR;
-	return da - cp;
-}
-
-static int of_bus_isa_translate(fdt32_t *addr, u64 offset, int na)
-{
-	return of_bus_default_translate(addr + 1, offset, na - 1);
-}
-
-#endif /* CONFIG_OF_ISA_BUS */
-
 /* Array of bus specific translators */
 static struct of_bus of_busses[] = {
-#ifdef CONFIG_OF_ISA_BUS
-	/* ISA */
-	{
-		.name = "isa",
-		.addresses = "reg",
-		.match = of_bus_isa_match,
-		.count_cells = of_bus_isa_count_cells,
-		.map = of_bus_isa_map,
-		.translate = of_bus_isa_translate,
-	},
-#endif /* CONFIG_OF_ISA_BUS */
 	/* Default */
 	{
 		.name = "default",
@@ -1124,29 +1004,7 @@ static struct of_bus of_busses[] = {
 	},
 };
 
-static struct of_bus *of_match_bus(const void *blob, int parentoffset)
-{
-	struct of_bus *bus;
-
-	if (ARRAY_SIZE(of_busses) == 1)
-		return of_busses;
-
-	for (bus = of_busses; bus; bus++) {
-		if (!bus->match || bus->match(blob, parentoffset))
-			return bus;
-	}
-
-	/*
-	 * We should always have matched the default bus at least, since
-	 * it has a NULL match field. If we didn't then it somehow isn't
-	 * in the of_busses array or something equally catastrophic has
-	 * gone wrong.
-	 */
-	assert(0);
-	return NULL;
-}
-
-static int of_translate_one(const void *blob, int parent, struct of_bus *bus,
+static int of_translate_one(void * blob, int parent, struct of_bus *bus,
 			    struct of_bus *pbus, fdt32_t *addr,
 			    int na, int ns, int pna, const char *rprop)
 {
@@ -1209,8 +1067,8 @@ static int of_translate_one(const void *blob, int parent, struct of_bus *bus,
  * that can be mapped to a cpu physical address). This is not really specified
  * that way, but this is traditionally the way IBM at least do things
  */
-static u64 __of_translate_address(const void *blob, int node_offset,
-				  const fdt32_t *in_addr, const char *rprop)
+static u64 __of_translate_address(void *blob, int node_offset, const fdt32_t *in_addr,
+				  const char *rprop)
 {
 	int parent;
 	struct of_bus *bus, *pbus;
@@ -1225,7 +1083,7 @@ static u64 __of_translate_address(const void *blob, int node_offset,
 	parent = fdt_parent_offset(blob, node_offset);
 	if (parent < 0)
 		goto bail;
-	bus = of_match_bus(blob, parent);
+	bus = &of_busses[0];
 
 	/* Cound address cells & copy address locally */
 	bus->count_cells(blob, parent, &na, &ns);
@@ -1254,7 +1112,7 @@ static u64 __of_translate_address(const void *blob, int node_offset,
 		}
 
 		/* Get new parent bus and counts */
-		pbus = of_match_bus(blob, parent);
+		pbus = &of_busses[0];
 		pbus->count_cells(blob, parent, &pna, &pns);
 		if (!OF_CHECK_COUNTS(pna, pns)) {
 			printf("%s: Bad cell count for %s\n", __FUNCTION__,
@@ -1282,8 +1140,7 @@ static u64 __of_translate_address(const void *blob, int node_offset,
 	return result;
 }
 
-u64 fdt_translate_address(const void *blob, int node_offset,
-			  const fdt32_t *in_addr)
+u64 fdt_translate_address(void *blob, int node_offset, const fdt32_t *in_addr)
 {
 	return __of_translate_address(blob, node_offset, in_addr, "ranges");
 }
@@ -1676,7 +1533,7 @@ int fdt_setup_simplefb_node(void *fdt, int node, u64 base_address, u32 width,
 	if (ret < 0)
 		return ret;
 
-	snprintf(name, sizeof(name), "framebuffer@%" PRIx64, base_address);
+	snprintf(name, sizeof(name), "framebuffer@%llx", base_address);
 	ret = fdt_set_name(fdt, node, name);
 	if (ret < 0)
 		return ret;
@@ -1702,33 +1559,4 @@ int fdt_setup_simplefb_node(void *fdt, int node, u64 base_address, u32 width,
 		return ret;
 
 	return 0;
-}
-
-/*
- * Update native-mode in display-timings from display environment variable.
- * The node to update are specified by path.
- */
-int fdt_fixup_display(void *blob, const char *path, const char *display)
-{
-	int off, toff;
-
-	if (!display || !path)
-		return -FDT_ERR_NOTFOUND;
-
-	toff = fdt_path_offset(blob, path);
-	if (toff >= 0)
-		toff = fdt_subnode_offset(blob, toff, "display-timings");
-	if (toff < 0)
-		return toff;
-
-	for (off = fdt_first_subnode(blob, toff);
-	     off >= 0;
-	     off = fdt_next_subnode(blob, off)) {
-		uint32_t h = fdt_get_phandle(blob, off);
-		debug("%s:0x%x\n", fdt_get_name(blob, off, NULL),
-		      fdt32_to_cpu(h));
-		if (strcasecmp(fdt_get_name(blob, off, NULL), display) == 0)
-			return fdt_setprop_u32(blob, toff, "native-mode", h);
-	}
-	return toff;
 }

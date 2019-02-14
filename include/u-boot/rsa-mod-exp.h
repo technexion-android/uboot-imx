@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Freescale Semiconductor, Inc.
+ * Copyright (c) 2014, Ruchika Gupta.
  *
  * SPDX-License-Identifier:    GPL-2.0+
 */

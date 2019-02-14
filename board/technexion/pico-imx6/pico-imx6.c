@@ -1,8 +1,8 @@
 /*
- * Copyright (C) 2018 Technexion Ltd.
+ * Copyright (C) 2015 Technexion Ltd.
  *
  * Author: Richard Hu <richard.hu@technexion.com>
- *
+//  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
@@ -31,6 +31,14 @@
 #include <power/pmic.h>
 #include <power/pfuze100_pmic.h>
 
+
+#ifdef CONFIG_FSL_FASTBOOT
+#include <fsl_fastboot.h>
+#ifdef CONFIG_ANDROID_RECOVERY
+#include <recovery.h>
+#endif
+#endif /*CONFIG_FSL_FASTBOOT*/
+
 DECLARE_GLOBAL_DATA_PTR;
 
 #define UART_PAD_CTRL  (PAD_CTL_PUS_100K_UP |			\
@@ -52,6 +60,11 @@ DECLARE_GLOBAL_DATA_PTR;
 	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS |	\
 	PAD_CTL_ODE | PAD_CTL_SRE_FAST)
 
+#define OTG_ID_PAD_CTRL (PAD_CTL_PKE | PAD_CTL_PUE |           \
+	PAD_CTL_PUS_47K_UP  | PAD_CTL_SPEED_LOW |               \
+	PAD_CTL_DSE_80ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
+
+
 #define USDHC1_CD_GPIO		IMX_GPIO_NR(3, 9)
 #define USDHC3_CD_GPIO		IMX_GPIO_NR(1, 2)
 #define ETH_PHY_RESET		IMX_GPIO_NR(1, 26)
@@ -70,6 +83,11 @@ int dram_init(void)
 static iomux_v3_cfg_t const uart1_pads[] = {
 	IOMUX_PADS(PAD_CSI0_DAT10__UART1_TX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL)),
 	IOMUX_PADS(PAD_CSI0_DAT11__UART1_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL)),
+};
+
+static iomux_v3_cfg_t const otg_pads[] = {
+	IOMUX_PADS(PAD_EIM_D22__USB_OTG_PWR | MUX_PAD_CTRL(NO_PAD_CTRL)),
+	IOMUX_PADS(PAD_ENET_RX_ER__USB_OTG_ID | MUX_PAD_CTRL(OTG_ID_PAD_CTRL)),
 };
 
 static iomux_v3_cfg_t const usdhc1_pads[] = {
@@ -116,6 +134,15 @@ static iomux_v3_cfg_t const enet_pads[] = {
         IOMUX_PADS(PAD_ENET_RXD1__GPIO1_IO26 | MUX_PAD_CTRL(NO_PAD_CTRL)),
 };
 
+static iomux_v3_cfg_t const som_detection_pads[] = {
+	/* R149 */
+	IOMUX_PADS(PAD_EIM_EB0__GPIO2_IO28  | MUX_PAD_CTRL(NO_PAD_CTRL)),
+	/* R170 */
+	IOMUX_PADS(PAD_EIM_DA12__GPIO3_IO12  | MUX_PAD_CTRL(NO_PAD_CTRL)),
+	/* R173 */
+	IOMUX_PADS(PAD_EIM_DA5__GPIO3_IO05  | MUX_PAD_CTRL(NO_PAD_CTRL)),
+};
+
 static iomux_v3_cfg_t const wifi_pads[] = {
 	/* wifi wl-reg-on */
 	IOMUX_PADS(PAD_GPIO_7__GPIO1_IO07 | MUX_PAD_CTRL(NO_PAD_CTRL)),
@@ -148,6 +175,21 @@ static void setup_iomux_enet(void)
 	gpio_direction_output(ETH_PHY_RESET, 0);
 	udelay(500);
 	gpio_set_value(ETH_PHY_RESET, 1);
+}
+
+static void setup_iomux_usdhc1(void)
+{
+	SETUP_IOMUX_PADS(usdhc1_pads);
+}
+
+static void setup_iomux_usdhc3(void)
+{
+	SETUP_IOMUX_PADS(usdhc3_pads);
+}
+
+static void setup_iomux_som_detection(void)
+{
+	SETUP_IOMUX_PADS(som_detection_pads);
 }
 
 static bool cpu_is_pop(void)
@@ -531,9 +573,39 @@ int board_eth_init(bd_t *bis)
 	return cpu_eth_init(bis);
 }
 
+#define USB_OTHERREGS_OFFSET   0x800
+#define UCTRL_PWR_POL          (1 << 9)
+
+static void setup_usb(void)
+{
+       imx_iomux_v3_setup_multiple_pads(otg_pads,ARRAY_SIZE(otg_pads));
+
+       /*
+        * set daisy chain for otg_pin_id on 6q.
+        * for 6dl, this bit is reserved
+        */
+       imx_iomux_set_gpr_register(1, 13, 1, 0);
+}
+
+int board_ehci_hcd_init(int port)
+{
+       u32 *usbnc_usb_ctrl;
+
+       if (port > 1)
+               return -EINVAL;
+
+       usbnc_usb_ctrl = (u32 *)(USB_BASE_ADDR + USB_OTHERREGS_OFFSET +
+                                port * 4);
+
+       setbits_le32(usbnc_usb_ctrl, UCTRL_PWR_POL);
+
+       return 0;
+}
+
 int board_early_init_f(void)
 {
 	setup_iomux_uart();
+	setup_usb();
 #if defined(CONFIG_VIDEO_IPUV3)
 	setup_display();
 #endif
@@ -561,20 +633,25 @@ static const struct boot_mode board_boot_modes[] = {
 int board_init_pmic(void) {
 	struct pmic *p;
 	unsigned int reg;
+	int ret = power_pfuze100_init(1);
 
-	/* configure PFUZE100 PMIC */
-	power_pfuze100_init(CONFIG_I2C_PMIC);
+	if (ret)
+		return ret;
+
 	p = pmic_get("PFUZE100");
-	if (p && !pmic_probe(p)) {
-		pmic_reg_read(p, PFUZE100_DEVICEID, &reg);
-		printf("PMIC:  PFUZE100 ID=0x%02x\n", reg);
 
-		/* Set VGEN2 to 1.5V and enable */
-		pmic_reg_read(p, PFUZE100_VGEN2VOL, &reg);
-		reg &= ~(LDO_VOL_MASK);
-		reg |= (LDOA_1_50V | (1 << (LDO_EN)));
-		pmic_reg_write(p, PFUZE100_VGEN2VOL, reg);
-	}
+        ret = pmic_probe(p);
+	if (ret)
+		return ret;
+
+	pmic_reg_read(p, PFUZE100_DEVICEID, &reg);
+	printf("PMIC:  PFUZE100 ID=0x%02x\n", reg);
+
+	/* Increase VGEN2 to 1.5V to enable ethernet */
+	pmic_reg_read(p, PFUZE100_VGEN2VOL, &reg);
+	reg &= ~0xf;
+	reg |= 0xe;
+	pmic_reg_write(p, PFUZE100_VGEN2VOL, reg);
 
 	return 0;
 }
@@ -637,8 +714,7 @@ int board_init(void)
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
-	if (is_cpu_type(MXC_CPU_MX6Q) || is_cpu_type(MXC_CPU_MX6D) ||
-		is_cpu_type(MXC_CPU_MX6QP) || is_cpu_type(MXC_CPU_MX6DP)) {
+	if (is_cpu_type(MXC_CPU_MX6Q) || is_cpu_type(MXC_CPU_MX6D)) {
 		//setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &mx6q_i2c1_pad_info);
 		setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &mx6q_i2c2_pad_info);
 		setup_i2c(2, CONFIG_SYS_I2C_SPEED, 0x7f, &mx6q_i2c3_pad_info);
@@ -658,7 +734,33 @@ int checkboard(void)
 	else
 		printf("Board: pico-imx6\n");
 
-	printf("Available baseboard: dwarf, hobbit, nymph, pi\n");
+	printf("Available baseboard: dwarf, hobbit, nymph\n");
 
 	return 0;
 }
+
+#ifdef CONFIG_FSL_FASTBOOT
+void board_fastboot_setup(void)
+{
+	if (!getenv("fastboot_dev"))
+		setenv("fastboot_dev", "mmc0");
+	if (!getenv("bootcmd"))
+		setenv("bootcmd", "run tn_boot_init; boota mmc0");
+}
+
+#ifdef CONFIG_ANDROID_RECOVERY
+int check_recovery_cmd_file(void)
+{
+	return recovery_check_and_clean_flag();
+}
+
+void board_recovery_setup(void)
+{
+	if (!getenv("bootcmd_android_recovery"))
+		setenv("bootcmd_android_recovery", "boota mmc0 recovery");
+
+	printf("setup env for recovery..\n");
+	setenv("bootcmd", "run tn_boot_init; run bootcmd_android_recovery");
+}
+#endif /*CONFIG_ANDROID_RECOVERY*/
+#endif /*CONFIG_FSL_FASTBOOT*/

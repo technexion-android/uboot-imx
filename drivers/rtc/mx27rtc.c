@@ -30,7 +30,7 @@ int rtc_get(struct rtc_time *time)
 
 	sec += min * 60 + hour * 3600 + day * 24 * 3600;
 
-	rtc_to_tm(sec, time);
+	to_tm(sec, time);
 
 	return 0;
 }
@@ -40,7 +40,8 @@ int rtc_set(struct rtc_time *time)
 	struct rtc_regs *rtc_regs = (struct rtc_regs *)IMX_RTC_BASE;
 	uint32_t day, hour, min, sec;
 
-	sec = rtc_mktime(time);
+	sec = mktime(time->tm_year, time->tm_mon, time->tm_mday,
+		time->tm_hour, time->tm_min, time->tm_sec);
 
 	day  = sec / (24 * 3600);
 	sec  = sec % (24 * 3600);

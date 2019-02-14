@@ -381,7 +381,7 @@ int last_stage_init(void)
 		ch0_rgmii2_present = !pca9698_get_value(0x20, 30);
 	}
 
-	/* wait for FPGA done; then reset FPGA */
+	/* wait for FPGA done */
 	for (k = 0; k < ARRAY_SIZE(mclink_controllers); ++k) {
 		unsigned int ctr = 0;
 
@@ -396,26 +396,11 @@ int last_stage_init(void)
 				break;
 			}
 		}
-
-		pca953x_set_dir(mclink_controllers[k], MCFPGA_RESET_N, 0);
-		pca953x_set_val(mclink_controllers[k], MCFPGA_RESET_N, 0);
-		udelay(10);
-		pca953x_set_val(mclink_controllers[k], MCFPGA_RESET_N,
-				MCFPGA_RESET_N);
 	}
 
 	if (!legacy && (feature_carrier_speed == CARRIER_SPEED_1G)) {
-		int retval;
-		struct mii_dev *mdiodev = mdio_alloc();
-		if (!mdiodev)
-			return -ENOMEM;
-		strncpy(mdiodev->name, bb_miiphy_buses[0].name, MDIO_NAME_LEN);
-		mdiodev->read = bb_miiphy_read;
-		mdiodev->write = bb_miiphy_write;
-
-		retval = mdio_register(mdiodev);
-		if (retval < 0)
-			return retval;
+		miiphy_register(bb_miiphy_buses[0].name, bb_miiphy_read,
+				bb_miiphy_write);
 		for (mux_ch = 0; mux_ch < MAX_MUX_CHANNELS; ++mux_ch) {
 			if ((mux_ch == 1) && !ch0_rgmii2_present)
 				continue;
@@ -446,18 +431,8 @@ int last_stage_init(void)
 		print_fpga_info(k, false);
 		osd_probe(k);
 		if (feature_carrier_speed == CARRIER_SPEED_1G) {
-			int retval;
-			struct mii_dev *mdiodev = mdio_alloc();
-			if (!mdiodev)
-				return -ENOMEM;
-			strncpy(mdiodev->name, bb_miiphy_buses[k].name,
-				MDIO_NAME_LEN);
-			mdiodev->read = bb_miiphy_read;
-			mdiodev->write = bb_miiphy_write;
-
-			retval = mdio_register(mdiodev);
-			if (retval < 0)
-				return retval;
+			miiphy_register(bb_miiphy_buses[k].name,
+					bb_miiphy_read, bb_miiphy_write);
 			setup_88e1518(bb_miiphy_buses[k].name, 0);
 		}
 	}

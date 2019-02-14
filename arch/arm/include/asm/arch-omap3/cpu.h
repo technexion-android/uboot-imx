@@ -59,8 +59,13 @@ struct ctrl_id {
 #endif /* __ASSEMBLY__ */
 #endif /* __KERNEL_STRICT_NAMES */
 
-/* boot pin mask */
+/* device type */
+#define DEVICE_MASK		(0x7 << 8)
 #define SYSBOOT_MASK		0x1F
+#define TST_DEVICE		0x0
+#define EMU_DEVICE		0x1
+#define HS_DEVICE		0x2
+#define GP_DEVICE		0x3
 
 /* device speed */
 #define SKUID_CLK_MASK		0xf

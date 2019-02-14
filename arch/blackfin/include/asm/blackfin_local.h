@@ -1,5 +1,5 @@
 /*
- * U-Boot - blackfin_local.h
+ * U-boot - blackfin_local.h
  *
  * Copyright (c) 2005-2007 Analog Devices Inc.
  *

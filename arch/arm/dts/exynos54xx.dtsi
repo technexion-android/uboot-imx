@@ -14,17 +14,17 @@
 	};
 
 	aliases {
-		i2c0 = "/i2c@12C60000";
-		i2c1 = "/i2c@12C70000";
-		i2c2 = "/i2c@12C80000";
-		i2c3 = "/i2c@12C90000";
-		i2c4 = "/i2c@12CA0000";
-		i2c5 = "/i2c@12CB0000";
-		i2c6 = "/i2c@12CC0000";
-		i2c7 = "/i2c@12CD0000";
-		i2c8 = "/i2c@12E00000";
-		i2c9 = "/i2c@12E10000";
-		i2c10 = "/i2c@12E20000";
+		i2c0 = "/i2c@12c60000";
+		i2c1 = "/i2c@12c70000";
+		i2c2 = "/i2c@12c80000";
+		i2c3 = "/i2c@12c90000";
+		i2c4 = "/i2c@12ca0000";
+		i2c5 = "/i2c@12cb0000";
+		i2c6 = "/i2c@12cc0000";
+		i2c7 = "/i2c@12cd0000";
+		i2c8 = "/i2c@12e00000";
+		i2c9 = "/i2c@12e10000";
+		i2c10 = "/i2c@12e20000";
 		pinctrl0 = &pinctrl_0;
 		pinctrl1 = &pinctrl_1;
 		pinctrl2 = &pinctrl_2;
@@ -42,14 +42,7 @@
 		xhci1 = "/xhci@12400000";
 	};
 
-	adc@12D10000 {
-		compatible = "samsung,exynos-adc-v2";
-		reg = <0x12D10000 0x100>;
-		interrupts = <0 106 0>;
-		status = "disabled";
-	};
-
-	hsi2c_4: i2c@12CA0000 {
+	i2c@12ca0000 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "samsung,exynos5-hsi2c";
@@ -57,7 +50,7 @@
 		interrupts = <0 60 0>;
 	};
 
-	i2c@12CB0000 {
+	i2c@12cb0000 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "samsung,exynos5-hsi2c";
@@ -65,7 +58,7 @@
 		interrupts = <0 61 0>;
 	};
 
-	i2c@12CC0000 {
+	i2c@12cc0000 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "samsung,exynos5-hsi2c";
@@ -73,7 +66,7 @@
 		interrupts = <0 62 0>;
 	};
 
-	i2c@12CD0000 {
+	i2c@12cd0000 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "samsung,exynos5-hsi2c";
@@ -81,7 +74,7 @@
 		interrupts = <0 63 0>;
 	};
 
-	i2c@12E00000 {
+	i2c@12e00000 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "samsung,exynos5-hsi2c";
@@ -89,7 +82,7 @@
 		interrupts = <0 87 0>;
 	};
 
-	i2c@12E10000 {
+	i2c@12e10000 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "samsung,exynos5-hsi2c";
@@ -97,7 +90,7 @@
 		interrupts = <0 88 0>;
 	};
 
-	i2c@12E20000 {
+	i2c@12e20000 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "samsung,exynos5-hsi2c";
@@ -178,7 +171,7 @@
 		samsung,pwm-out-gpio = <&gpb2 0 GPIO_ACTIVE_HIGH>;
 	};
 
-	dp: dp@145b0000 {
+	dp@145b0000 {
 		samsung,lt-status = <0>;
 
 		samsung,master-mode = <0>;
@@ -195,13 +188,6 @@
 
 	dmc {
 		mem-type = "ddr3";
-	};
-
-	pwm: pwm@12dd0000 {
-		compatible = "samsung,exynos4210-pwm";
-		reg = <0x12dd0000 0x100>;
-		samsung,pwm-outputs = <0>, <1>, <2>, <3>;
-		#pwm-cells = <3>;
 	};
 
 	xhci1: xhci@12400000 {

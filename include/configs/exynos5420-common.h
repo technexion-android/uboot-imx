@@ -13,10 +13,12 @@
 /* A variant of Exynos5420 (Exynos5 Family) */
 #define CONFIG_EXYNOS5800
 
-#define CONFIG_EXYNOS5_DT
+#include <configs/exynos5-common.h>
 
-/* Provide the MACH_TYPE value that the vendor kernel requires. */
-#define CONFIG_MACH_TYPE		8002
+#define CONFIG_ARCH_EARLY_INIT_R
+
+#define MACH_TYPE_SMDK5420	8002
+#define CONFIG_MACH_TYPE	MACH_TYPE_SMDK5420
 
 #define CONFIG_VAR_SIZE_SPL
 
@@ -31,6 +33,10 @@
 
 #define CONFIG_DEVICE_TREE_LIST "exynos5800-peach-pi"	\
 				"exynos5420-peach-pit exynos5420-smdk5420"
+
+#define CONFIG_MAX_I2C_NUM	11
+
+#define CONFIG_BOARD_REV_GPIO_COUNT	2
 
 #define CONFIG_PHY_IRAM_BASE		0x02020000
 
@@ -47,7 +53,5 @@
  * Number of CPUs available
  */
 #define CONFIG_CORE_COUNT		0x8
-
-#define CONFIG_USB_XHCI_EXYNOS
 
 #endif	/* __CONFIG_EXYNOS5420_H */

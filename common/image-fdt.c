@@ -6,8 +6,6 @@
  * (C) Copyright 2000-2006
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
- * Copyright (C) 2015-2016 Freescale Semiconductor, Inc.
- *
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
@@ -16,7 +14,6 @@
 #include <errno.h>
 #include <image.h>
 #include <libfdt.h>
-#include <mapmem.h>
 #include <asm/io.h>
 
 #ifndef CONFIG_SYS_FDT_PAD
@@ -233,7 +230,7 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 	ulong		fdt_addr;
 	char		*fdt_blob = NULL;
 	void		*buf;
-#if CONFIG_IS_ENABLED(FIT)
+#if defined(CONFIG_FIT)
 	const char	*fit_uname_config = images->fit_uname_cfg;
 	const char	*fit_uname_fdt = NULL;
 	ulong		default_addr;
@@ -248,7 +245,7 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 	if (argc > 2)
 		select = argv[2];
 	if (select || genimg_has_config(images)) {
-#if CONFIG_IS_ENABLED(FIT)
+#if defined(CONFIG_FIT)
 		if (select) {
 			/*
 			 * If the FDT blob comes from the FIT image and the
@@ -278,7 +275,7 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 				debug("*  fdt: cmdline image address = 0x%08lx\n",
 				      fdt_addr);
 			}
-#if CONFIG_IS_ENABLED(FIT)
+#if defined(CONFIG_FIT)
 		} else {
 			/* use FIT configuration provided in first bootm
 			 * command argument
@@ -287,7 +284,7 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 			fdt_noffset = fit_get_node_from_config(images,
 							       FIT_FDT_PROP,
 							       fdt_addr);
-			if (fdt_noffset == -ENOENT)
+			if (fdt_noffset == -ENOLINK)
 				return 0;
 			else if (fdt_noffset < 0)
 				return 1;
@@ -353,7 +350,7 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 			 * (libfdt based) and raw FDT blob (also libfdt
 			 * based).
 			 */
-#if CONFIG_IS_ENABLED(FIT)
+#if defined(CONFIG_FIT)
 			/* check FDT blob vs FIT blob */
 			if (fit_check_format(buf)) {
 				ulong load, len;
@@ -479,12 +476,17 @@ error:
  * addresses of some of the devices in the device tree are compared with the
  * actual addresses at which U-Boot has placed them.
  *
- * Returns 1 on success, 0 on failure.  If 0 is returned, U-Boot will halt the
+ * Returns 1 on success, 0 on failure.  If 0 is returned, U-boot will halt the
  * boot process.
  */
 __weak int ft_verify_fdt(void *fdt)
 {
 	return 1;
+}
+
+__weak int arch_fixup_fdt(void *blob)
+{
+	return 0;
 }
 
 int image_setup_libfdt(bootm_headers_t *images, void *blob,
@@ -495,10 +497,6 @@ int image_setup_libfdt(bootm_headers_t *images, void *blob,
 	int ret = -EPERM;
 	int fdt_ret;
 
-	if (fdt_root(blob) < 0) {
-		printf("ERROR: root node setup failed\n");
-		goto err;
-	}
 	if (fdt_chosen(blob) < 0) {
 		printf("ERROR: /chosen node create failed\n");
 		goto err;
@@ -526,11 +524,10 @@ int image_setup_libfdt(bootm_headers_t *images, void *blob,
 	fdt_fixup_ethernet(blob);
 
 	/* Delete the old LMB reservation */
-	if (lmb)
-		lmb_free(lmb, (phys_addr_t)(u32)(uintptr_t)blob,
-			 (phys_size_t)fdt_totalsize(blob));
+	lmb_free(lmb, (phys_addr_t)(u32)(uintptr_t)blob,
+		 (phys_size_t)fdt_totalsize(blob));
 
-	ret = fdt_shrink_to_minimum(blob, 0);
+	ret = fdt_shrink_to_minimum(blob);
 	if (ret < 0)
 		goto err;
 	of_size = ret;
@@ -540,8 +537,7 @@ int image_setup_libfdt(bootm_headers_t *images, void *blob,
 		fdt_set_totalsize(blob, of_size);
 	}
 	/* Create a new LMB reservation */
-	if (lmb)
-		lmb_reserve(lmb, (ulong)blob, of_size);
+	lmb_reserve(lmb, (ulong)blob, of_size);
 
 	fdt_initrd(blob, *initrd_start, *initrd_end);
 	if (!ft_verify_fdt(blob))

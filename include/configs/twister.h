@@ -14,11 +14,13 @@
 
 #include "tam3517-common.h"
 
+#define MACH_TYPE_TAM3517	2818
 #define CONFIG_MACH_TYPE	MACH_TYPE_TAM3517
 
 #define CONFIG_TAM3517_SW3_SETTINGS
 #define CONFIG_XR16L2751
 
+#define CONFIG_BOOTDELAY	10
 
 #define CONFIG_BOOTFILE		"uImage"
 
@@ -27,6 +29,8 @@
 /*
  * Miscellaneous configurable options
  */
+#define CONFIG_SYS_PROMPT		"twister => "
+
 #define CONFIG_SMC911X
 #define CONFIG_SMC911X_16_BIT
 #define CONFIG_SMC911X_BASE		0x2C000000
@@ -41,6 +45,7 @@
 #define CONFIG_SYS_NAND_SPL_KERNEL_OFFS	0x00200000
 #define CONFIG_CMD_SPL_NAND_OFS	(CONFIG_SYS_NAND_SPL_KERNEL_OFFS+\
 						0x600000)
+#define CONFIG_SPL_OS_BOOT
 
 #define CONFIG_SYS_SPL_ARGS_ADDR	(PHYS_SDRAM_1 + 0x100)
 #define CONFIG_SPL_BOARD_INIT

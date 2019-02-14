@@ -6,7 +6,7 @@
  *
  * Heavily borrowed from the following peoples GPL'ed software:
  *  - Wolfgang Denk, DENX Software Engineering, wd@denx.de
- *       Das U-Boot
+ *       Das U-boot
  *  - Ladislav Michl ladis@linux-mips.org
  *       A rejected patch on the U-Boot mailing list
  */

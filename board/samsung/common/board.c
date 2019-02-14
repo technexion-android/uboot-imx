@@ -21,14 +21,10 @@
 #include <asm/arch/pinmux.h>
 #include <asm/arch/power.h>
 #include <asm/arch/system.h>
+#include <power/pmic.h>
 #include <asm/arch/sromc.h>
 #include <lcd.h>
-#include <i2c.h>
-#include <usb.h>
-#include <dwc3-uboot.h>
 #include <samsung/misc.h>
-#include <dm/pinctrl.h>
-#include <dm.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -99,7 +95,7 @@ int board_init(void)
 int dram_init(void)
 {
 	unsigned int i;
-	unsigned long addr;
+	u32 addr;
 
 	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
 		addr = CONFIG_SYS_SDRAM_BASE + (i * SDRAM_BANK_SIZE);
@@ -111,7 +107,7 @@ int dram_init(void)
 void dram_init_banksize(void)
 {
 	unsigned int i;
-	unsigned long addr, size;
+	u32 addr, size;
 
 	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
 		addr = CONFIG_SYS_SDRAM_BASE + (i * SDRAM_BANK_SIZE);
@@ -124,7 +120,6 @@ void dram_init_banksize(void)
 
 static int board_uart_init(void)
 {
-#ifndef CONFIG_PINCTRL_EXYNOS
 	int err, uart_id, ret = 0;
 
 	for (uart_id = PERIPH_ID_UART0; uart_id <= PERIPH_ID_UART3; uart_id++) {
@@ -136,9 +131,6 @@ static int board_uart_init(void)
 		}
 	}
 	return ret;
-#else
-	return 0;
-#endif
 }
 
 #ifdef CONFIG_BOARD_EARLY_INIT_F
@@ -158,11 +150,25 @@ int board_early_init_f(void)
 	board_i2c_init(gd->fdt_blob);
 #endif
 
+#if defined(CONFIG_OF_CONTROL) && defined(CONFIG_EXYNOS_FB)
+/*
+ * board_init_f(arch/arm/lib/board.c) calls lcd_setmem() which needs
+ * panel_info.vl_col, panel_info.vl_row and panel_info.vl_bpix, to reserve
+ * FB memory at a very early stage. So, we need to fill panel_info.vl_col,
+ * panel_info.vl_row and panel_info.vl_bpix before lcd_setmem() is called.
+ */
+	err = exynos_lcd_early_init(gd->fdt_blob);
+	if (err) {
+		debug("LCD early init failed\n");
+		return err;
+	}
+#endif
+
 	return exynos_early_init_f();
 }
 #endif
 
-#if defined(CONFIG_POWER) || defined(CONFIG_DM_PMIC)
+#if defined(CONFIG_POWER)
 int power_init_board(void)
 {
 	set_ps_hold_ctrl();
@@ -171,6 +177,7 @@ int power_init_board(void)
 }
 #endif
 
+#ifdef CONFIG_OF_CONTROL
 #ifdef CONFIG_SMC911X
 static int decode_sromc(const void *blob, struct fdt_sromc *config)
 {
@@ -251,7 +258,7 @@ int board_eth_init(bd_t *bis)
 #ifdef CONFIG_GENERIC_MMC
 static int init_mmc(void)
 {
-#ifdef CONFIG_MMC_SDHCI
+#ifdef CONFIG_SDHCI
 	return exynos_mmc_init(gd->fdt_blob);
 #else
 	return 0;
@@ -260,7 +267,7 @@ static int init_mmc(void)
 
 static int init_dwmmc(void)
 {
-#ifdef CONFIG_MMC_DW
+#ifdef CONFIG_DWMMC
 	return exynos_dwmmc_init(gd->fdt_blob);
 #else
 	return 0;
@@ -295,12 +302,13 @@ int checkboard(void)
 	printf("Board: %s\n", board_info ? board_info : "unknown");
 #ifdef CONFIG_BOARD_TYPES
 	board_info = get_board_type();
-	if (board_info)
-		printf("Type:  %s\n", board_info);
+
+	printf("Model: %s\n", board_info ? board_info : "unknown");
 #endif
 	return 0;
 }
 #endif
+#endif /* CONFIG_OF_CONTROL */
 
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
@@ -320,6 +328,18 @@ int board_late_init(void)
 	return 0;
 }
 #endif
+
+int arch_early_init_r(void)
+{
+#ifdef CONFIG_CROS_EC
+	if (cros_ec_board_init()) {
+		printf("%s: Failed to init EC\n", __func__);
+		return 0;
+	}
+#endif
+
+	return 0;
+}
 
 #ifdef CONFIG_MISC_INIT_R
 int misc_init_r(void)
@@ -365,12 +385,4 @@ void reset_misc(void)
 		mdelay(10);
 		dm_gpio_set_value(&gpio, 1);
 	}
-}
-
-int board_usb_cleanup(int index, enum usb_init_type init)
-{
-#ifdef CONFIG_USB_DWC3
-	dwc3_uboot_exit(index);
-#endif
-	return 0;
 }

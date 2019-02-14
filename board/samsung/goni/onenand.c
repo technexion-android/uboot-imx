@@ -11,13 +11,11 @@
 #include <linux/mtd/samsung_onenand.h>
 #include <onenand_uboot.h>
 
-int onenand_board_init(struct mtd_info *mtd)
+void onenand_board_init(struct mtd_info *mtd)
 {
 	struct onenand_chip *this = mtd->priv;
 
 	this->base = (void *)CONFIG_SYS_ONENAND_BASE;
 	this->options |= ONENAND_RUNTIME_BADBLOCK_CHECK;
 	this->chip_probe = s5pc110_chip_probe;
-
-	return 0;
 }

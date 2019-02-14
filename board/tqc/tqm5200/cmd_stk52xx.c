@@ -12,7 +12,6 @@
 
 #include <common.h>
 #include <command.h>
-#include <console.h>
 
 #if defined(CONFIG_CMD_BSP)
 
@@ -72,7 +71,7 @@ static int spi_transmit(unsigned char data)
 	spi->dr = data;
 	/* wait for SPI transmission completed */
 	while (!(spi->sr & 0x80)) {
-		if (spi->sr & 0x40) {	/* if write collision occurred */
+		if (spi->sr & 0x40) {	/* if write collision occured */
 			int dummy;
 
 			/* do dummy read to clear status register */

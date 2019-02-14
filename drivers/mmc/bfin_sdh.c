@@ -12,7 +12,7 @@
 #include <mmc.h>
 
 #include <asm/io.h>
-#include <linux/errno.h>
+#include <asm/errno.h>
 #include <asm/byteorder.h>
 #include <asm/blackfin.h>
 #include <asm/clock.h>
@@ -109,9 +109,9 @@ sdh_send_cmd(struct mmc *mmc, struct mmc_cmd *mmc_cmd)
 	}
 
 	if (status & CMD_TIME_OUT)
-		ret = -ETIMEDOUT;
+		ret = TIMEOUT;
 	else if (status & CMD_CRC_FAIL && flags & MMC_RSP_CRC)
-		ret = -ECOMM;
+		ret = COMM_ERR;
 	else
 		ret = 0;
 
@@ -136,7 +136,7 @@ static int sdh_setup_data(struct mmc *mmc, struct mmc_data *data)
 
 	/* Don't support write yet. */
 	if (data->flags & MMC_DATA_WRITE)
-		return -EOPNOTSUPP;
+		return UNUSABLE_ERR;
 #ifndef RSI_BLKSZ
 	data_ctl |= ((ffs(data->blocksize) - 1) << 4);
 #else
@@ -194,10 +194,10 @@ static int bfin_sdh_request(struct mmc *mmc, struct mmc_cmd *cmd,
 
 		if (status & DAT_TIME_OUT) {
 			bfin_write_SDH_STATUS_CLR(DAT_TIMEOUT_STAT);
-			ret = -ETIMEDOUT;
+			ret |= TIMEOUT;
 		} else if (status & (DAT_CRC_FAIL | RX_OVERRUN)) {
 			bfin_write_SDH_STATUS_CLR(DAT_CRC_FAIL_STAT | RX_OVERRUN_STAT);
-			ret = -ECOMM;
+			ret |= COMM_ERR;
 		} else
 			bfin_write_SDH_STATUS_CLR(DAT_BLK_END_STAT | DAT_END_STAT);
 
@@ -234,7 +234,7 @@ static void sdh_set_clk(unsigned long clk)
 		bfin_write_SDH_CLK_CTL(clk_ctl & ~CLK_E);
 }
 
-static int bfin_sdh_set_ios(struct mmc *mmc)
+static void bfin_sdh_set_ios(struct mmc *mmc)
 {
 	u16 cfg = 0;
 	u16 clk_ctl = 0;
@@ -250,8 +250,6 @@ static int bfin_sdh_set_ios(struct mmc *mmc)
 	}
 	bfin_write_SDH_CLK_CTL(clk_ctl);
 	sdh_set_clk(mmc->clock);
-
-	return 0;
 }
 
 static int bfin_sdh_init(struct mmc *mmc)

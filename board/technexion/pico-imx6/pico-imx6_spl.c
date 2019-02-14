@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Technexion Ltd.
+ * Copyright (C) 2015 Technexion Ltd.
  *
  * Author: Richard Hu <richard.hu@technexion.com>
  *
@@ -10,7 +10,7 @@
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/mx6-pins.h>
-#include <linux/errno.h>
+#include <asm/errno.h>
 #include <asm/gpio.h>
 #include <asm/imx-common/iomux-v3.h>
 #include <asm/imx-common/video.h>
@@ -130,6 +130,34 @@ struct mx6sdl_iomux_grp_regs mx6sdl_grp_ioregs = {
 	.grp_b7ds = IMX6SDL_DRIVE_STRENGTH,
 };
 
+/* H5T04G63AFR-PB */
+static struct mx6_ddr3_cfg h5t04g63afr = {
+	.mem_speed = 1600,
+	.density = 4,
+	.width = 16,
+	.banks = 8,
+	.rowaddr = 15,
+	.coladdr = 10,
+	.pagesz = 2,
+	.trcd = 1375,
+	.trcmin = 4875,
+	.trasmin = 3500,
+};
+
+/* H5TQ2G63DFR-H9 */
+static struct mx6_ddr3_cfg h5tq2g63dfr = {
+	.mem_speed = 1333,
+	.density = 2,
+	.width = 16,
+	.banks = 8,
+	.rowaddr = 14,
+	.coladdr = 10,
+	.pagesz = 2,
+	.trcd = 1350,
+	.trcmin = 4950,
+	.trasmin = 3600,
+};
+
 /* H5T04G63AFR-PB for i.mx6Solo/DL operating DDR at 400MHz */
 static struct mx6_ddr3_cfg h5t04g63afr_800mhz = {
 	.mem_speed = 800,
@@ -162,7 +190,7 @@ static struct mx6_ddr3_cfg h5tq2g63ffr_800mhz = {
  * calibration - these are the various CPU/DDR3 combinations we support
  */
 
-static struct mx6_mmdc_calibration mx6q_1g_mmdc_calib = {
+static struct mx6_mmdc_calibration mx6q_2g_mmdc_calib = {
 	.p0_mpwldectrl0 = 0x00000000,
 	.p0_mpwldectrl1 = 0x00000000,
 	.p1_mpwldectrl0 = 0x00000000,
@@ -175,6 +203,38 @@ static struct mx6_mmdc_calibration mx6q_1g_mmdc_calib = {
 	.p1_mprddlctl = 0x3638323E,
 	.p0_mpwrdlctl = 0x363C4640,
 	.p1_mpwrdlctl = 0x4034423C,
+};
+
+/* DDR 64bit 2GB */
+static struct mx6_ddr_sysinfo mem_q = {
+	.dsize		= 2,
+	.cs1_mirror	= 0,
+	/* config for full 4GB range so that get_mem_size() works */
+	.cs_density	= 32,
+	.ncs		= 1,
+	.bi_on		= 1,
+	.rtt_nom	= 1,
+	.rtt_wr		= 0,
+	.ralat		= 5,
+	.walat		= 0,
+	.mif3_mode	= 3,
+	.rst_to_cke	= 0x23,
+	.sde_to_rst	= 0x10,
+};
+
+static struct mx6_mmdc_calibration mx6d_1g_mmdc_calib = {
+	.p0_mpwldectrl0 = 0x00000000,
+	.p0_mpwldectrl1 = 0x00000000,
+	.p1_mpwldectrl0 = 0x00000000,
+	.p1_mpwldectrl1 = 0x00000000,
+	.p0_mpdgctrl0 = 0x03280334,
+	.p0_mpdgctrl1 = 0x03280320,
+	.p1_mpdgctrl0 = 0x0330033C,
+	.p1_mpdgctrl1 = 0x033C0278,
+	.p0_mprddlctl = 0x423A3A3E,
+	.p1_mprddlctl = 0x3C3E3842,
+	.p0_mpwrdlctl = 0x36384240,
+	.p1_mpwrdlctl = 0x4A384440,
 };
 
 static struct mx6_mmdc_calibration mx6dl_1g_mmdc_calib = {
@@ -201,7 +261,24 @@ static struct mx6_mmdc_calibration mx6s_512m_mmdc_calib = {
 	.p0_mpwrdlctl = 0x38362E2E,
 };
 
-/* DDR 32bit */
+/* DDR 64bit 1GB */
+static struct mx6_ddr_sysinfo mem_dl = {
+	.dsize		= 2,
+	.cs1_mirror	= 0,
+	/* config for full 4GB range so that get_mem_size() works */
+	.cs_density	= 32,
+	.ncs		= 1,
+	.bi_on		= 1,
+	.rtt_nom	= 1,
+	.rtt_wr		= 0,
+	.ralat		= 5,
+	.walat		= 0,
+	.mif3_mode	= 3,
+	.rst_to_cke	= 0x23,
+	.sde_to_rst	= 0x10,
+};
+
+/* DDR 32bit 512MB */
 static struct mx6_ddr_sysinfo mem_s = {
 	.dsize		= 1,
 	.cs1_mirror	= 0,
@@ -242,68 +319,222 @@ static void gpr_init(void)
 	writel(0x007F007F, &iomux->gpr[7]);
 }
 
-#ifdef CONFIG_IMX6_SPREAD_SPECTRUM
-static void enable_spread_spectrum(void)
+/* Set up LPDDR2 timing by ourself */
+static void spl_dram_init_lpddr2(void)
 {
-	asm volatile (
-		"ldr r0, =#0x20C4000\n"			// base register CCM_BASE_ADDR
-		"ldr r1, [r0,#0x18]\n"			// get the CCM_CMCMR
-		"ldr r3, [r0,#0x18]\n"			// restore it later
-		"and r1, r1, #0xffffcfff\n"		// set r1 to set periph_clk2_sel to "01 derive clock from osc_clk (pll1_ref_clk)"
-		"orr r1, r1, #0x00001000\n"		//
-		"str r1, [r0,#0x18]\n"			// the set it
-		"ldr r1, [r0,#0x14]\n"			// load the CCM_CBCDR
-		"ldr r2, [r0,#0x14]\n"			// restore it later
-		"orr r1, r1, #0x02000000\n"		// set r1 to set periph_clk_sel to "1 derive clock from periph_clk2_clk clock source."
-		"str r1, [r0,#0x14]\n"			// then set it
+	/* Apollos dirty hack for setting 400MHz clocks */
+	writel(0x60324, 0x020C4018);
+	 /* i.MX6Q */
+	/* DDR IO TYPE */
+	writel(0x00080000, IOMUXC_BASE_ADDR + 0x798);
+	writel(0x00000000, IOMUXC_BASE_ADDR + 0x758);
+	/* Clock */
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x588);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x594);
+	/* Address */
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x56c);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x578);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x74c);
+	/* Control */
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x57c);//fix to apply for LPDDR2
 
-		"ldr r0, =0x020c8000\n"			//
-		"ldr r1, [r0,#0x30]\n"			// get the CCM_ANALOG_PLL_SYS
-		"orr r1, r1, #0x00010000\n"		// set to bypass
-		"str r1, [r0,#0x30]\n"
+	writel(0x00000000, IOMUXC_BASE_ADDR + 0x58c);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x59c);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x5a0);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x78c);
+	/* Data Strobe */
+	writel(0x00020000, IOMUXC_BASE_ADDR + 0x750);
 
-		"orr r1, r1, #0x00011000\n"		// set to power down (the docs don't say if there needs to be a delay from the above)
-		"str r1, [r0,#0x30]\n"
+	writel(0x00003028, IOMUXC_BASE_ADDR + 0x5a8);
+	writel(0x00003028, IOMUXC_BASE_ADDR + 0x5b0);
+	writel(0x00003028, IOMUXC_BASE_ADDR + 0x524);
+	writel(0x00003028, IOMUXC_BASE_ADDR + 0x51c);
+	writel(0x00003028, IOMUXC_BASE_ADDR + 0x518);
+	writel(0x00003028, IOMUXC_BASE_ADDR + 0x50c);
+	writel(0x00003028, IOMUXC_BASE_ADDR + 0x5b8);
+	writel(0x00003028, IOMUXC_BASE_ADDR + 0x5c0);
+	/* Data */
+	writel(0x00020000, IOMUXC_BASE_ADDR + 0x774);
 
-		"ldr r1, =0x00001770\n"			// set the denominator to 6000 dec
-		"str r1, [r0,#0x60]\n"
-		"ldr r1, =0x0bb88006\n"			// set the STOP t0 3000 (xbb8) and the STEP to 6 (x006)
-										// giving: range=24M * 3000/6000 = 12M, step=24M * 6 / 6000 = 24khz
-		"str r1, [r0,#0x40]\n"
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x784);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x788);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x794);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x79c);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x7a0);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x7a4);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x7a8);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x748);
 
-		"ldr r1, [r0,#0x30]\n"
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x5ac);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x5b4);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x528);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x520);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x514);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x510);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x5bc);
+	writel(0x00000028, IOMUXC_BASE_ADDR + 0x5c4);
 
-		"and r1, r1, #0xFFFFEFFF\n"		// power up
-		"str r1, [r0,#0x30]\n"
+	//=============================================================================
+	// DDR Controller Registers
+	//=============================================================================
+	// Manufacturer:	Micron
+	// Device Part Number:	MT42L64M64D2KH-18
+	// Clock Freq.: 	400MHz
+	// MMDC channels: 	MMDC0 & MMDC1
+	// Density per CS in Gb:4
+	// Chip Selects used:	1
+	// Number of Banks:	8
+	// Row address:    	14
+	// Column address: 	10
+	// Data bus width	2x32
+	//=============================================================================
 
-		"and r1, r1, #0xFFFEFFFF\n"		// enable (the docs don't say if there needs to be a delay from the above)
-		"str r1, [r0,#0x30]\n"
+	writel(0x00008000, MMDC_P0_BASE_ADDR + 0x01c);
+	writel(0x00008000, MMDC_P1_BASE_ADDR + 0x01c);
+	writel(0x1B4700C7, MMDC_P0_BASE_ADDR + 0x85c);
+	writel(0x1B4700C7, MMDC_P1_BASE_ADDR + 0x85c);
 
-		"ldr r4, =0x0\n"
-	);
+	/* Calibrations */
+	/* ZQ */
+	writel(0xA1390003, MMDC_P0_BASE_ADDR + 0x800);
 
-	//udelay(10);
-	asm volatile (
-		"pu_delay:\n"				// wait until the pll is locked
-		"ldr r1, [r0,#0xD0]\n"
-		"tst r1, #0x80000000\n"
-		"bne pu_delay\n"
-	);
+	/* ca bus abs delay */
+	writel(0x00400000, MMDC_P0_BASE_ADDR + 0x890);
+	writel(0x00400000, MMDC_P1_BASE_ADDR + 0x890);
+
+	/* Read calibration */
+	writel(0x42424044, MMDC_P0_BASE_ADDR + 0x848);
+	writel(0x4242404A, MMDC_P1_BASE_ADDR + 0x848);
+
+	/* Write calibration */
+	writel(0x3E383A34, MMDC_P0_BASE_ADDR + 0x850);
+	writel(0x40323C3A, MMDC_P1_BASE_ADDR + 0x850);
+
+	/* dqs gating dis */
+	writel(0x20000000, MMDC_P0_BASE_ADDR + 0x83C);
+	writel(0x00000000, MMDC_P0_BASE_ADDR + 0x840);
+	writel(0x20000000, MMDC_P1_BASE_ADDR + 0x83C);
+	writel(0x00000000, MMDC_P1_BASE_ADDR + 0x840);
+
+	/* read data bit delay */
+	writel(0x33333333, MMDC_P0_BASE_ADDR + 0x81C);
+	writel(0x33333333, MMDC_P0_BASE_ADDR + 0x820);
+	writel(0x33333333, MMDC_P0_BASE_ADDR + 0x824);
+	writel(0x33333333, MMDC_P0_BASE_ADDR + 0x828);
+	writel(0x33333333, MMDC_P1_BASE_ADDR + 0x81C);
+	writel(0x33333333, MMDC_P1_BASE_ADDR + 0x820);
+	writel(0x33333333, MMDC_P1_BASE_ADDR + 0x824);
+	writel(0x33333333, MMDC_P1_BASE_ADDR + 0x828);
+
+	/* write data bit delay */
+	writel(0xF3333333, MMDC_P0_BASE_ADDR + 0x82C);
+	writel(0xF3333333, MMDC_P0_BASE_ADDR + 0x830);
+	writel(0xF3333333, MMDC_P0_BASE_ADDR + 0x834);
+	writel(0xF3333333, MMDC_P0_BASE_ADDR + 0x838);
+	writel(0xF3333333, MMDC_P1_BASE_ADDR + 0x82C);
+	writel(0xF3333333, MMDC_P1_BASE_ADDR + 0x830);
+	writel(0xF3333333, MMDC_P1_BASE_ADDR + 0x834);
+	writel(0xF3333333, MMDC_P1_BASE_ADDR + 0x838);
+
+	/* Complete calibration by forced measurement */
+	writel(0x00000800, MMDC_P0_BASE_ADDR + 0x8b8);
+	writel(0x00000800, MMDC_P1_BASE_ADDR + 0x8b8);
 
 
-	asm volatile (
-		"ldr r0, =#0x20C4000\n"			// restore and done
-		"str r2, [r0,#0x14]\n"
-		"str r3, [r0,#0x18]\n"
-	);
+	//=============================================================================
+	// Calibration setup end
+	//=============================================================================
+	/* Channel0 - startng address */
+	writel(0x00020036, MMDC_P0_BASE_ADDR + 0x004);
+	writel(0x00000000, MMDC_P0_BASE_ADDR + 0x008);
+	writel(0x33374133, MMDC_P0_BASE_ADDR + 0x00c);
+	writel(0x00100A82, MMDC_P0_BASE_ADDR + 0x010);
+	writel(0x00000093, MMDC_P0_BASE_ADDR + 0x014);
+
+	//MDMISC: RALAT kept to the high level of 5
+	//MDMISC: consider reducing RALAT if your 528MHz board design allow that. Lower RALAT benefits:
+	//a. better operation at low frequency, for LPDDR2 freq < 100MHz, change RALAT to 3
+	//b. Small performence improvment
+	writel(0x0000174C, MMDC_P0_BASE_ADDR + 0x018);
+	writel(0x00008000, MMDC_P0_BASE_ADDR + 0x01c);
+	writel(0x0F9F26D2, MMDC_P0_BASE_ADDR + 0x02c);
+	writel(0x00000010, MMDC_P0_BASE_ADDR + 0x030);
+	writel(0x00190778, MMDC_P0_BASE_ADDR + 0x038);
+	writel(0x00000053, MMDC_P0_BASE_ADDR + 0x040);
+	writel(0x11420000, MMDC_P0_BASE_ADDR + 0x400);
+	writel(0x83110000, MMDC_P0_BASE_ADDR + 0x000);
+
+	/* Channel1 - starting address */
+	writel(0x00020036, MMDC_P1_BASE_ADDR + 0x004);
+	writel(0x00000000, MMDC_P1_BASE_ADDR + 0x008);
+	writel(0x33374133, MMDC_P1_BASE_ADDR + 0x00c);
+	writel(0x00100A82, MMDC_P1_BASE_ADDR + 0x010);
+	writel(0x00000093, MMDC_P1_BASE_ADDR + 0x014);
+
+	//MDMISC: RALAT kept to the high level of 5
+	//MDMISC: consider reducing RALAT if your 528MHz board design allow that. Lower RALAT benefits:
+	//a. better operation at low frequency, for LPDDR2 freq < 100MHz, change RALAT to 3
+	//b. Small performence improvment
+	writel(0x0000174C, MMDC_P1_BASE_ADDR + 0x018);
+	writel(0x00008000, MMDC_P1_BASE_ADDR + 0x01c);
+	writel(0x0F9F26D2, MMDC_P1_BASE_ADDR + 0x02c);
+	writel(0x00000010, MMDC_P1_BASE_ADDR + 0x030);
+	writel(0x00190778, MMDC_P1_BASE_ADDR + 0x038);
+	writel(0x00000013, MMDC_P1_BASE_ADDR + 0x040);
+	writel(0x11420000, MMDC_P1_BASE_ADDR + 0x400);
+	writel(0x83110000, MMDC_P1_BASE_ADDR + 0x000);
+
+	// Channel0 : Configure DDR device:
+	//CS0
+	writel(0x003F8030, MMDC_P0_BASE_ADDR + 0x01c);
+	writel(0xFF0A8030, MMDC_P0_BASE_ADDR + 0x01c);
+	writel(0x82018030, MMDC_P0_BASE_ADDR + 0x01c);
+	writel(0x04028030, MMDC_P0_BASE_ADDR + 0x01c);
+	writel(0x03038030, MMDC_P0_BASE_ADDR + 0x01c);
+
+	// Channel1 : Configure DDR device:
+	//CS0
+	writel(0x003F8030, MMDC_P1_BASE_ADDR + 0x01c);
+	writel(0xFF0A8030, MMDC_P1_BASE_ADDR + 0x01c);
+	writel(0x82018030, MMDC_P1_BASE_ADDR + 0x01c);
+	writel(0x04028030, MMDC_P1_BASE_ADDR + 0x01c);
+	writel(0x03038030, MMDC_P1_BASE_ADDR + 0x01c);
+
+	// DDR_PHY_P0_MPZQHWCTRL, enable both one-time & periodic HW ZQ calibration.
+	writel(0xA1390003, MMDC_P0_BASE_ADDR + 0x800);
+
+	writel(0x00001800, MMDC_P0_BASE_ADDR + 0x020);
+	writel(0x00001800, MMDC_P1_BASE_ADDR + 0x020);
+
+	writel(0x00000000, MMDC_P0_BASE_ADDR + 0x818);
+	writel(0x00000000, MMDC_P1_BASE_ADDR + 0x818);
+
+	writel(0x00025576, MMDC_P0_BASE_ADDR + 0x004);
+	writel(0x00025576, MMDC_P1_BASE_ADDR + 0x004);
+
+	writel(0x00011006, MMDC_P0_BASE_ADDR + 0x404);
+	writel(0x00011006, MMDC_P1_BASE_ADDR + 0x404);
+
+	writel(0x00000000, MMDC_P0_BASE_ADDR + 0x01c);
+	writel(0x00000000, MMDC_P1_BASE_ADDR + 0x01c);
 }
-#endif
+
+static bool cpu_is_pop(void)
+{
+	u32 soc_sbmr = readl(SRC_BASE_ADDR + 0x4);
+	u32 ddr_map;
+
+	/* BOOT_CFG3[4] and BOOT_CFG3[5] */
+	ddr_map = (soc_sbmr >> 20) & 0x3;
+
+	if (ddr_map == 0x2)
+		return true;
+	else
+		return false;
+}
 
 static void spl_dram_init(void)
 {
-#ifdef CONFIG_IMX6_SPREAD_SPECTRUM
-	enable_spread_spectrum();
-#endif
 	switch (get_cpu_type()) {
 	case MXC_CPU_MX6SOLO:
 		mx6sdl_dram_iocfg(32, &mx6sdl_ddr_ioregs, &mx6sdl_grp_ioregs);
@@ -315,8 +546,12 @@ static void spl_dram_init(void)
 		break;
 	case MXC_CPU_MX6D:
 	case MXC_CPU_MX6Q:
-		mx6dq_dram_iocfg(32, &mx6dq_ddr_ioregs, &mx6dq_grp_ioregs);
-		mx6_dram_cfg(&mem_s, &mx6q_1g_mmdc_calib, &h5t04g63afr_800mhz);
+		if (cpu_is_pop()) {
+			spl_dram_init_lpddr2();
+		} else {
+			mx6dq_dram_iocfg(32, &mx6dq_ddr_ioregs, &mx6dq_grp_ioregs);
+			mx6_dram_cfg(&mem_s, &mx6q_2g_mmdc_calib, &h5t04g63afr_800mhz);
+		}
 		break;
 	}
 
@@ -349,5 +584,9 @@ void board_init_f(ulong dummy)
 
 	/* load/boot image from boot device */
 	board_init_r(NULL, 0);
+}
+
+void reset_cpu(ulong addr)
+{
 }
 #endif

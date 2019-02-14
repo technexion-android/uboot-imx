@@ -1,8 +1,17 @@
 /*
- * (C) Copyright 2010-2014
- * NVIDIA Corporation <www.nvidia.com>
+ * Copyright (c) 2010-2014, NVIDIA CORPORATION.  All rights reserved.
  *
- * SPDX-License-Identifier:     GPL-2.0+
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms and conditions of the GNU General Public License,
+ * version 2, as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <common.h>
@@ -22,7 +31,7 @@ static void enable_cpu_power_rail(void)
 	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
 	u32 reg;
 
-	debug("%s entry\n", __func__);
+	debug("enable_cpu_power_rail entry\n");
 
 	/* un-tristate PWR_I2C SCL/SDA, rest of the defaults are correct */
 	pinmux_tristate_disable(PMUX_PINGRP_PWR_I2C_SCL_PZ6);
@@ -52,15 +61,14 @@ static void enable_cpu_power_rail(void)
 static void enable_cpu_clocks(void)
 {
 	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
-	struct clk_pll_info *pllinfo = &tegra_pll_info_table[CLOCK_ID_XCPU];
 	u32 reg;
 
-	debug("%s entry\n", __func__);
+	debug("enable_cpu_clocks entry\n");
 
 	/* Wait for PLL-X to lock */
 	do {
 		reg = readl(&clkrst->crc_pll_simple[SIMPLE_PLLX].pll_base);
-	} while ((reg & (1 << pllinfo->lock_det)) == 0);
+	} while ((reg & PLL_LOCK_MASK) == 0);
 
 	/* Wait until all clocks are stable */
 	udelay(PLL_STABILIZATION_DELAY);
@@ -79,7 +87,7 @@ static void remove_cpu_resets(void)
 	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
 	u32 reg;
 
-	debug("%s entry\n", __func__);
+	debug("remove_cpu_resets entry\n");
 	/* Take the slow non-CPU partition out of reset */
 	reg = readl(&clkrst->crc_rst_cpulp_cmplx_clr);
 	writel((reg | CLR_NONCPURESET), &clkrst->crc_rst_cpulp_cmplx_clr);
@@ -103,7 +111,7 @@ static void remove_cpu_resets(void)
 }
 
 /**
- * Tegra114 requires some special clock initialization, including setting up
+ * The T114 requires some special clock initialization, including setting up
  * the DVC I2C, turning on MSELECT and selecting the G CPU cluster
  */
 void t114_init_clocks(void)
@@ -113,7 +121,7 @@ void t114_init_clocks(void)
 	struct flow_ctlr *flow = (struct flow_ctlr *)NV_PA_FLOW_BASE;
 	u32 val;
 
-	debug("%s entry\n", __func__);
+	debug("t114_init_clocks entry\n");
 
 	/* Set active CPU cluster to G */
 	clrbits_le32(&flow->cluster_control, 1);
@@ -181,7 +189,7 @@ void t114_init_clocks(void)
 	reset_set_enable(PERIPH_ID_MC1, 0);
 	reset_set_enable(PERIPH_ID_DVFS, 0);
 
-	debug("%s exit\n", __func__);
+	debug("t114_init_clocks exit\n");
 }
 
 static bool is_partition_powered(u32 partid)
@@ -230,9 +238,10 @@ static void power_partition(u32 partid)
 
 void powerup_cpus(void)
 {
-	/* We boot to the fast cluster */
-	debug("%s entry: G cluster\n", __func__);
+	debug("powerup_cpus entry\n");
 
+	/* We boot to the fast cluster */
+	debug("powerup_cpus entry: G cluster\n");
 	/* Power up the fast cluster rail partition */
 	power_partition(CRAIL);
 
@@ -247,7 +256,7 @@ void start_cpu(u32 reset_vector)
 {
 	u32 imme, inst;
 
-	debug("%s entry, reset_vector = %x\n", __func__, reset_vector);
+	debug("start_cpu entry, reset_vector = %x\n", reset_vector);
 
 	t114_init_clocks();
 
@@ -293,7 +302,7 @@ void start_cpu(u32 reset_vector)
 	inst |= 0xea000000;
 	writel(inst, 0x4003fffc);
 
-	/* Write to original location for compatibility */
+	/* Write to orignal location for compatibility */
 	writel(reset_vector, EXCEP_VECTOR_CPU_RESET_VECTOR);
 
 	/* If the CPU(s) don't already have power, power 'em up */

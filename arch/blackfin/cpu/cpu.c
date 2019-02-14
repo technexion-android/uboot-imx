@@ -1,5 +1,5 @@
 /*
- * U-Boot - cpu.c CPU specific functions
+ * U-boot - cpu.c CPU specific functions
  *
  * Copyright (c) 2005-2008 Analog Devices Inc.
  *

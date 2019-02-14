@@ -257,7 +257,7 @@ int misc_init_r(void)
 	int ret;
 
 	TAM3517_READ_EEPROM(&info, ret);
-	omap_die_id_display();
+	dieid_num_r();
 
 	if (ret)
 		return 0;
@@ -291,7 +291,7 @@ int board_eth_init(bd_t *bis)
 	return 0;
 }
 
-#if defined(CONFIG_MMC_OMAP_HS) && \
+#if defined(CONFIG_OMAP_HSMMC) && \
 	!defined(CONFIG_SPL_BUILD)
 int board_mmc_init(bd_t *bis)
 {

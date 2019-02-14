@@ -66,16 +66,13 @@ static int device_chld_remove(struct udevice *dev)
 
 int device_unbind(struct udevice *dev)
 {
-	const struct driver *drv;
+	struct driver *drv;
 	int ret;
 
 	if (!dev)
 		return -EINVAL;
 
 	if (dev->flags & DM_FLAG_ACTIVATED)
-		return -EINVAL;
-
-	if (!(dev->flags & DM_FLAG_BOUND))
 		return -EINVAL;
 
 	drv = dev->driver;
@@ -95,10 +92,6 @@ int device_unbind(struct udevice *dev)
 		free(dev->platdata);
 		dev->platdata = NULL;
 	}
-	if (dev->flags & DM_FLAG_ALLOC_UCLASS_PDATA) {
-		free(dev->uclass_platdata);
-		dev->uclass_platdata = NULL;
-	}
 	if (dev->flags & DM_FLAG_ALLOC_PARENT_PDATA) {
 		free(dev->parent_platdata);
 		dev->parent_platdata = NULL;
@@ -109,11 +102,6 @@ int device_unbind(struct udevice *dev)
 
 	if (dev->parent)
 		list_del(&dev->sibling_node);
-
-	devres_release_all(dev);
-
-	if (dev->flags & DM_FLAG_NAME_ALLOCED)
-		free((char *)dev->name);
 	free(dev);
 
 	return 0;
@@ -147,13 +135,11 @@ void device_free(struct udevice *dev)
 			dev->parent_priv = NULL;
 		}
 	}
-
-	devres_release_probe(dev);
 }
 
 int device_remove(struct udevice *dev)
 {
-	const struct driver *drv;
+	struct driver *drv;
 	int ret;
 
 	if (!dev)

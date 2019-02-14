@@ -11,6 +11,7 @@
 #include <asm/arch/at91sam9263.h>
 #include <asm/arch/at91sam9_smc.h>
 #include <asm/arch/at91_common.h>
+#include <asm/arch/at91_pmc.h>
 #include <asm/arch/at91_matrix.h>
 #include <asm/arch/at91_pio.h>
 #include <asm/arch/clk.h>
@@ -38,6 +39,7 @@ static void at91sam9263ek_nand_hw_init(void)
 	unsigned long csa;
 	at91_smc_t    *smc    = (at91_smc_t *) ATMEL_BASE_SMC0;
 	at91_matrix_t *matrix = (at91_matrix_t *) ATMEL_BASE_MATRIX;
+	at91_pmc_t    *pmc    = (at91_pmc_t *) ATMEL_BASE_PMC;
 
 	/* Enable CS3 */
 	csa = readl(&matrix->csa[0]) | AT91_MATRIX_CSA_EBI_CS3A;
@@ -66,8 +68,8 @@ static void at91sam9263ek_nand_hw_init(void)
 		       AT91_SMC_MODE_TDF_CYCLE(2),
 		&smc->cs[3].mode);
 
-	at91_periph_clk_enable(ATMEL_ID_PIOA);
-	at91_periph_clk_enable(ATMEL_ID_PIOCDE);
+	writel(1 << ATMEL_ID_PIOA | 1 << ATMEL_ID_PIOCDE,
+		&pmc->pcer);
 
 	/* Configure RDY/BSY */
 	at91_set_gpio_input(CONFIG_SYS_NAND_READY_PIN, 1);
@@ -80,9 +82,11 @@ static void at91sam9263ek_nand_hw_init(void)
 #ifdef CONFIG_MACB
 static void at91sam9263ek_macb_hw_init(void)
 {
+	at91_pmc_t	*pmc	= (at91_pmc_t *) ATMEL_BASE_PMC;
 	at91_pio_t	*pio	= (at91_pio_t *) ATMEL_BASE_PIO;
 
-	at91_periph_clk_enable(ATMEL_ID_EMAC);
+	/* Enable clock */
+	writel(1 << ATMEL_ID_EMAC, &pmc->pcer);
 
 	/*
 	 * Disable pull-up on:
@@ -135,6 +139,8 @@ void lcd_disable(void)
 
 static void at91sam9263ek_lcd_hw_init(void)
 {
+	at91_pmc_t	*pmc	= (at91_pmc_t *) ATMEL_BASE_PMC;
+
 	at91_set_a_periph(AT91_PIO_PORTC, 1, 0);	/* LCDHSYNC */
 	at91_set_a_periph(AT91_PIO_PORTC, 2, 0);	/* LCDDOTCK */
 	at91_set_a_periph(AT91_PIO_PORTC, 3, 0);	/* LCDDEN */
@@ -158,7 +164,7 @@ static void at91sam9263ek_lcd_hw_init(void)
 	at91_set_a_periph(AT91_PIO_PORTC, 26, 0);	/* LCDD22 */
 	at91_set_a_periph(AT91_PIO_PORTC, 27, 0);	/* LCDD23 */
 
-	at91_periph_clk_enable(ATMEL_ID_LCDC);
+	writel(1 << ATMEL_ID_LCDC, &pmc->pcer);
 	gd->fb_base = ATMEL_BASE_SRAM0;
 }
 
@@ -166,14 +172,14 @@ static void at91sam9263ek_lcd_hw_init(void)
 #include <nand.h>
 #include <version.h>
 
-#ifdef CONFIG_MTD_NOR_FLASH
+#ifndef CONFIG_SYS_NO_FLASH
 extern flash_info_t flash_info[];
 #endif
 
 void lcd_show_board_info(void)
 {
 	ulong dram_size, nand_size;
-#ifdef CONFIG_MTD_NOR_FLASH
+#ifndef CONFIG_SYS_NO_FLASH
 	ulong flash_size;
 #endif
 	int i;
@@ -191,8 +197,8 @@ void lcd_show_board_info(void)
 		dram_size += gd->bd->bi_dram[i].size;
 	nand_size = 0;
 	for (i = 0; i < CONFIG_SYS_MAX_NAND_DEVICE; i++)
-		nand_size += nand_info[i]->size;
-#ifdef CONFIG_MTD_NOR_FLASH
+		nand_size += nand_info[i].size;
+#ifndef CONFIG_SYS_NO_FLASH
 	flash_size = 0;
 	for (i = 0; i < CONFIG_SYS_MAX_FLASH_BANKS; i++)
 		flash_size += flash_info[i].size;
@@ -200,7 +206,7 @@ void lcd_show_board_info(void)
 	lcd_printf ("  %ld MB SDRAM, %ld MB NAND",
 		dram_size >> 20,
 		nand_size >> 20 );
-#ifdef CONFIG_MTD_NOR_FLASH
+#ifndef CONFIG_SYS_NO_FLASH
 	lcd_printf (",\n  %ld MB NOR",
 		flash_size >> 20);
 #endif
@@ -220,9 +226,12 @@ int board_mmc_init(bd_t *bd)
 
 int board_early_init_f(void)
 {
-	at91_periph_clk_enable(ATMEL_ID_PIOA);
-	at91_periph_clk_enable(ATMEL_ID_PIOB);
-	at91_periph_clk_enable(ATMEL_ID_PIOCDE);
+	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
+
+	/* Enable clocks for all PIOs */
+	writel((1 << ATMEL_ID_PIOA) | (1 << ATMEL_ID_PIOB) |
+		(1 << ATMEL_ID_PIOCDE),
+		&pmc->pcer);
 
 	at91_seriald_hw_init();
 	return 0;

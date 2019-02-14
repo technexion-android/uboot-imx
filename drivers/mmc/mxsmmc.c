@@ -20,7 +20,7 @@
 #include <common.h>
 #include <malloc.h>
 #include <mmc.h>
-#include <linux/errno.h>
+#include <asm/errno.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
@@ -84,7 +84,7 @@ static int mxsmmc_send_cmd_pio(struct mxsmmc_priv *priv, struct mmc_data *data)
 		}
 	}
 
-	return timeout ? 0 : -ECOMM;
+	return timeout ? 0 : COMM_ERR;
 }
 
 static int mxsmmc_send_cmd_dma(struct mxsmmc_priv *priv, struct mmc_data *data)
@@ -120,7 +120,7 @@ static int mxsmmc_send_cmd_dma(struct mxsmmc_priv *priv, struct mmc_data *data)
 	mxs_dma_desc_append(dmach, priv->desc);
 	if (mxs_dma_go(dmach)) {
 		bounce_buffer_stop(&bbstate);
-		return -ECOMM;
+		return COMM_ERR;
 	}
 
 	bounce_buffer_stop(&bbstate);
@@ -142,7 +142,7 @@ mxsmmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	uint32_t ctrl0;
 	int ret;
 
-	debug("MMC%d: CMD%d\n", mmc->block_dev.devnum, cmd->cmdidx);
+	debug("MMC%d: CMD%d\n", mmc->block_dev.dev, cmd->cmdidx);
 
 	/* Check bus busy */
 	timeout = MXSMMC_MAX_TIMEOUT;
@@ -157,14 +157,14 @@ mxsmmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	}
 
 	if (!timeout) {
-		printf("MMC%d: Bus busy timeout!\n", mmc->block_dev.devnum);
-		return -ETIMEDOUT;
+		printf("MMC%d: Bus busy timeout!\n", mmc->block_dev.dev);
+		return TIMEOUT;
 	}
 
 	/* See if card is present */
 	if (!mxsmmc_cd(priv)) {
-		printf("MMC%d: No card detected!\n", mmc->block_dev.devnum);
-		return -ENOMEDIUM;
+		printf("MMC%d: No card detected!\n", mmc->block_dev.dev);
+		return NO_CARD_ERR;
 	}
 
 	/* Start building CTRL0 contents */
@@ -200,10 +200,10 @@ mxsmmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 		if (data->flags & MMC_DATA_READ) {
 			ctrl0 |= SSP_CTRL0_READ;
 		} else if (priv->mmc_is_wp &&
-			priv->mmc_is_wp(mmc->block_dev.devnum)) {
+			priv->mmc_is_wp(mmc->block_dev.dev)) {
 			printf("MMC%d: Can not write a locked card!\n",
-				mmc->block_dev.devnum);
-			return -EOPNOTSUPP;
+				mmc->block_dev.dev);
+			return UNUSABLE_ERR;
 		}
 
 		ctrl0 |= SSP_CTRL0_DATA_XFER;
@@ -243,22 +243,22 @@ mxsmmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 
 	if (!timeout) {
 		printf("MMC%d: Command %d busy\n",
-			mmc->block_dev.devnum, cmd->cmdidx);
-		return -ETIMEDOUT;
+			mmc->block_dev.dev, cmd->cmdidx);
+		return TIMEOUT;
 	}
 
 	/* Check command timeout */
 	if (reg & SSP_STATUS_RESP_TIMEOUT) {
 		printf("MMC%d: Command %d timeout (status 0x%08x)\n",
-			mmc->block_dev.devnum, cmd->cmdidx, reg);
-		return -ETIMEDOUT;
+			mmc->block_dev.dev, cmd->cmdidx, reg);
+		return TIMEOUT;
 	}
 
 	/* Check command errors */
 	if (reg & (SSP_STATUS_RESP_CRC_ERR | SSP_STATUS_RESP_ERR)) {
 		printf("MMC%d: Command %d error (status 0x%08x)!\n",
-			mmc->block_dev.devnum, cmd->cmdidx, reg);
-		return -ECOMM;
+			mmc->block_dev.dev, cmd->cmdidx, reg);
+		return COMM_ERR;
 	}
 
 	/* Copy response to response buffer */
@@ -279,14 +279,14 @@ mxsmmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 		if (ret) {
 			printf("MMC%d: Data timeout with command %d "
 				"(status 0x%08x)!\n",
-				mmc->block_dev.devnum, cmd->cmdidx, reg);
+				mmc->block_dev.dev, cmd->cmdidx, reg);
 			return ret;
 		}
 	} else {
 		ret = mxsmmc_send_cmd_dma(priv, data);
 		if (ret) {
 			printf("MMC%d: DMA transfer failed\n",
-				mmc->block_dev.devnum);
+				mmc->block_dev.dev);
 			return ret;
 		}
 	}
@@ -297,14 +297,14 @@ mxsmmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 		(SSP_STATUS_TIMEOUT | SSP_STATUS_DATA_CRC_ERR |
 		SSP_STATUS_FIFO_OVRFLW | SSP_STATUS_FIFO_UNDRFLW)) {
 		printf("MMC%d: Data error with command %d (status 0x%08x)!\n",
-			mmc->block_dev.devnum, cmd->cmdidx, reg);
-		return -ECOMM;
+			mmc->block_dev.dev, cmd->cmdidx, reg);
+		return COMM_ERR;
 	}
 
 	return 0;
 }
 
-static int mxsmmc_set_ios(struct mmc *mmc)
+static void mxsmmc_set_ios(struct mmc *mmc)
 {
 	struct mxsmmc_priv *priv = mmc->priv;
 	struct mxs_ssp_regs *ssp_regs = priv->regs;
@@ -330,9 +330,7 @@ static int mxsmmc_set_ios(struct mmc *mmc)
 			SSP_CTRL0_BUS_WIDTH_MASK, priv->buswidth);
 
 	debug("MMC%d: Set %d bits bus width\n",
-		mmc->block_dev.devnum, mmc->bus_width);
-
-	return 0;
+		mmc->block_dev.dev, mmc->bus_width);
 }
 
 static int mxsmmc_init(struct mmc *mmc)
@@ -407,7 +405,8 @@ int mxsmmc_initialize(bd_t *bis, int id, int (*wp)(int), int (*cd)(int))
 	priv->cfg.voltages = MMC_VDD_32_33 | MMC_VDD_33_34;
 
 	priv->cfg.host_caps = MMC_MODE_4BIT | MMC_MODE_8BIT |
-			 MMC_MODE_HS_52MHz | MMC_MODE_HS;
+			 MMC_MODE_HS_52MHz | MMC_MODE_HS |
+			 MMC_MODE_HC;
 
 	/*
 	 * SSPCLK = 480 * 18 / 29 / 1 = 297.731 MHz

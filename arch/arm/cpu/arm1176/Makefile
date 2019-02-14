@@ -8,7 +8,5 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
-obj- += dummy.o
 extra-y	= start.o
-
-obj-y += ../arm11/
+obj-y	= cpu.o

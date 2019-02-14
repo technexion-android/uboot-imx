@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2013 - 2015 Xilinx, Inc.
+ * (C) Copyright 2013 Inc.
  *
  * Xilinx Zynq SD Host Controller Interface
  *
@@ -7,79 +7,57 @@
  */
 
 #include <common.h>
-#include <dm.h>
 #include <fdtdec.h>
 #include <libfdt.h>
 #include <malloc.h>
 #include <sdhci.h>
+#include <asm/arch/sys_proto.h>
 
-#ifndef CONFIG_ZYNQ_SDHCI_MIN_FREQ
-# define CONFIG_ZYNQ_SDHCI_MIN_FREQ	0
-#endif
-
-struct arasan_sdhci_plat {
-	struct mmc_config cfg;
-	struct mmc mmc;
-};
-
-static int arasan_sdhci_probe(struct udevice *dev)
+int zynq_sdhci_init(phys_addr_t regbase)
 {
-	struct arasan_sdhci_plat *plat = dev_get_platdata(dev);
-	struct mmc_uclass_priv *upriv = dev_get_uclass_priv(dev);
-	struct sdhci_host *host = dev_get_priv(dev);
-	int ret;
+	struct sdhci_host *host = NULL;
 
-	host->quirks = SDHCI_QUIRK_WAIT_SEND_CMD |
+	host = (struct sdhci_host *)malloc(sizeof(struct sdhci_host));
+	if (!host) {
+		printf("zynq_sdhci_init: sdhci_host malloc fail\n");
+		return 1;
+	}
+
+	host->name = "zynq_sdhci";
+	host->ioaddr = (void *)regbase;
+	host->quirks = SDHCI_QUIRK_NO_CD | SDHCI_QUIRK_WAIT_SEND_CMD |
 		       SDHCI_QUIRK_BROKEN_R1B;
+	host->version = sdhci_readw(host, SDHCI_HOST_VERSION);
 
-#ifdef CONFIG_ZYNQ_HISPD_BROKEN
-	host->quirks |= SDHCI_QUIRK_NO_HISPD_BIT;
-#endif
+	host->host_caps = MMC_MODE_HC;
 
-	host->max_clk = CONFIG_ZYNQ_SDHCI_MAX_FREQ;
-
-	ret = sdhci_setup_cfg(&plat->cfg, host, 0,
-			      CONFIG_ZYNQ_SDHCI_MIN_FREQ);
-	host->mmc = &plat->mmc;
-	if (ret)
-		return ret;
-	host->mmc->priv = host;
-	host->mmc->dev = dev;
-	upriv->mmc = host->mmc;
-
-	return sdhci_probe(dev);
-}
-
-static int arasan_sdhci_ofdata_to_platdata(struct udevice *dev)
-{
-	struct sdhci_host *host = dev_get_priv(dev);
-
-	host->name = dev->name;
-	host->ioaddr = (void *)dev_get_addr(dev);
-
+	add_sdhci(host, 52000000, 52000000 >> 9);
 	return 0;
 }
 
-static int arasan_sdhci_bind(struct udevice *dev)
+#ifdef CONFIG_OF_CONTROL
+int zynq_sdhci_of_init(const void *blob)
 {
-	struct arasan_sdhci_plat *plat = dev_get_platdata(dev);
+	int offset = 0;
+	u32 ret = 0;
+	phys_addr_t reg;
 
-	return sdhci_bind(dev, &plat->mmc, &plat->cfg);
+	debug("ZYNQ SDHCI: Initialization\n");
+
+	do {
+		offset = fdt_node_offset_by_compatible(blob, offset,
+					"arasan,sdhci-8.9a");
+		if (offset != -1) {
+			reg = fdtdec_get_addr(blob, offset, "reg");
+			if (reg != FDT_ADDR_T_NONE) {
+				ret |= zynq_sdhci_init(reg);
+			} else {
+				debug("ZYNQ SDHCI: Can't get base address\n");
+				return -1;
+			}
+		}
+	} while (offset != -1);
+
+	return ret;
 }
-
-static const struct udevice_id arasan_sdhci_ids[] = {
-	{ .compatible = "arasan,sdhci-8.9a" },
-	{ }
-};
-
-U_BOOT_DRIVER(arasan_sdhci_drv) = {
-	.name		= "arasan_sdhci",
-	.id		= UCLASS_MMC,
-	.of_match	= arasan_sdhci_ids,
-	.ofdata_to_platdata = arasan_sdhci_ofdata_to_platdata,
-	.ops		= &sdhci_ops,
-	.bind		= arasan_sdhci_bind,
-	.probe		= arasan_sdhci_probe,
-	.priv_auto_alloc_size = sizeof(struct sdhci_host),
-	.platdata_auto_alloc_size = sizeof(struct arasan_sdhci_plat),
-};
+#endif

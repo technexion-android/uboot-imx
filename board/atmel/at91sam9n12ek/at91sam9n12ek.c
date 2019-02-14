@@ -10,6 +10,7 @@
 #include <asm/arch/at91sam9x5_matrix.h>
 #include <asm/arch/at91sam9_smc.h>
 #include <asm/arch/at91_common.h>
+#include <asm/arch/at91_pmc.h>
 #include <asm/arch/at91_rstc.h>
 #include <asm/arch/at91_pio.h>
 #include <asm/arch/clk.h>
@@ -124,7 +125,7 @@ void lcd_show_board_info(void)
 		dram_size += gd->bd->bi_dram[i].size;
 	nand_size = 0;
 	for (i = 0; i < CONFIG_SYS_MAX_NAND_DEVICE; i++)
-		nand_size += nand_info[i]->size;
+		nand_size += nand_info[i].size;
 	lcd_printf("  %ld MB SDRAM, %ld MB NAND\n",
 		dram_size >> 20,
 		nand_size >> 20);
@@ -207,8 +208,9 @@ void at91sam9n12ek_usb_hw_init(void)
 
 int board_early_init_f(void)
 {
-	at91_periph_clk_enable(ATMEL_ID_PIOAB);
-	at91_periph_clk_enable(ATMEL_ID_PIOCD);
+	/* Enable clocks for all PIOs */
+	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
+	writel((1 << ATMEL_ID_PIOAB) | (1 << ATMEL_ID_PIOCD), &pmc->pcer);
 
 	at91_seriald_hw_init();
 	return 0;
@@ -272,7 +274,7 @@ void at91_spl_board_init(void)
 }
 
 #include <asm/arch/atmel_mpddrc.h>
-static void ddr2_conf(struct atmel_mpddrc_config *ddr2)
+static void ddr2_conf(struct atmel_mpddr *ddr2)
 {
 	ddr2->md = (ATMEL_MPDDRC_MD_DBW_16_BITS | ATMEL_MPDDRC_MD_DDR2_SDRAM);
 
@@ -308,13 +310,13 @@ void mem_init(void)
 {
 	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
 	struct at91_matrix *matrix = (struct at91_matrix *)ATMEL_BASE_MATRIX;
-	struct atmel_mpddrc_config ddr2;
+	struct atmel_mpddr ddr2;
 	unsigned long csa;
 
 	ddr2_conf(&ddr2);
 
 	/* enable DDR2 clock */
-	writel(AT91_PMC_DDR, &pmc->scer);
+	writel(0x4, &pmc->scer);
 
 	/* Chip select 1 is for DDR2/SDRAM */
 	csa = readl(&matrix->ebicsa);
@@ -325,6 +327,6 @@ void mem_init(void)
 	writel(csa, &matrix->ebicsa);
 
 	/* DDRAM2 Controller initialize */
-	ddr2_init(ATMEL_BASE_DDRSDRC, ATMEL_BASE_CS1, &ddr2);
+	ddr2_init(ATMEL_BASE_CS1, &ddr2);
 }
 #endif

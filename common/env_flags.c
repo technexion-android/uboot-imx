@@ -15,7 +15,6 @@
 #include <env_attr.h>
 #include <env_flags.h>
 #define getenv fw_getenv
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #else
 #include <common.h>
 #include <environment.h>
@@ -188,31 +187,6 @@ static void skip_num(int hex, const char *value, const char **end,
 		*end = value;
 }
 
-#ifdef CONFIG_CMD_NET
-int eth_validate_ethaddr_str(const char *addr)
-{
-	const char *end;
-	const char *cur;
-	int i;
-
-	cur = addr;
-	for (i = 0; i < 6; i++) {
-		skip_num(1, cur, &end, 2);
-		if (cur == end)
-			return -1;
-		if (cur + 2 == end && is_hex_prefix(cur))
-			return -1;
-		if (i != 5 && *end != ':')
-			return -1;
-		if (i == 5 && *end != '\0')
-			return -1;
-		cur = end + 1;
-	}
-
-	return 0;
-}
-#endif
-
 /*
  * Based on the declared type enum, validate that the value string complies
  * with that format
@@ -265,8 +239,19 @@ static int _env_flags_validate_type(const char *value,
 		}
 		break;
 	case env_flags_vartype_macaddr:
-		if (eth_validate_ethaddr_str(value))
-			return -1;
+		cur = value;
+		for (i = 0; i < 6; i++) {
+			skip_num(1, cur, &end, 2);
+			if (cur == end)
+				return -1;
+			if (cur + 2 == end && is_hex_prefix(cur))
+				return -1;
+			if (i != 5 && *end != ':')
+				return -1;
+			if (i == 5 && *end != '\0')
+				return -1;
+			cur = end + 1;
+		}
 		break;
 #endif
 	case env_flags_vartype_end:
@@ -374,21 +359,21 @@ int env_flags_validate_varaccess(const char *name, int check_mask)
 /*
  * Validate the parameters to "env set" directly
  */
-int env_flags_validate_env_set_params(char *name, char * const val[], int count)
+int env_flags_validate_env_set_params(int argc, char * const argv[])
 {
-	if ((count >= 1) && val[0] != NULL) {
-		enum env_flags_vartype type = env_flags_get_type(name);
+	if ((argc >= 3) && argv[2] != NULL) {
+		enum env_flags_vartype type = env_flags_get_type(argv[1]);
 
 		/*
 		 * we don't currently check types that need more than
 		 * one argument
 		 */
-		if (type != env_flags_vartype_string && count > 1) {
-			printf("## Error: too many parameters for setting \"%s\"\n",
-			       name);
+		if (type != env_flags_vartype_string && argc > 3) {
+			printf("## Error: too many parameters for setting "
+				"\"%s\"\n", argv[1]);
 			return -1;
 		}
-		return env_flags_validate_type(name, val[0]);
+		return env_flags_validate_type(argv[1], argv[2]);
 	}
 	/* ok */
 	return 0;
@@ -450,13 +435,14 @@ static int clear_flags(ENTRY *entry)
 /*
  * Call for each element in the list that defines flags for a variable
  */
-static int set_flags(const char *name, const char *value, void *priv)
+static int set_flags(const char *name, const char *value)
 {
 	ENTRY e, *ep;
 
 	e.key	= name;
 	e.data	= NULL;
 	e.callback = NULL;
+	e.flags = 0;
 	hsearch_r(e, FIND, &ep, &env_htab, 0);
 
 	/* does the env variable actually exist? */
@@ -479,9 +465,9 @@ static int on_flags(const char *name, const char *value, enum env_op op,
 	hwalk_r(&env_htab, clear_flags);
 
 	/* configure any static flags */
-	env_attr_walk(ENV_FLAGS_LIST_STATIC, set_flags, NULL);
+	env_attr_walk(ENV_FLAGS_LIST_STATIC, set_flags);
 	/* configure any dynamic flags */
-	env_attr_walk(value, set_flags, NULL);
+	env_attr_walk(value, set_flags);
 
 	return 0;
 }

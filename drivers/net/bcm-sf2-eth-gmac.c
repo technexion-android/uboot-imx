@@ -596,10 +596,12 @@ bool gmac_mii_busywait(unsigned int timeout)
 	return tmp & (1 << GMAC_MII_BUSY_SHIFT);
 }
 
-int gmac_miiphy_read(struct mii_dev *bus, int phyaddr, int devad, int reg)
+int gmac_miiphy_read(const char *devname, unsigned char phyaddr,
+			unsigned char reg, unsigned short *value)
 {
 	uint32_t tmp = 0;
-	u16 value = 0;
+
+	(void)devname;
 
 	/* Busy wait timeout is 1ms */
 	if (gmac_mii_busywait(1000)) {
@@ -619,15 +621,17 @@ int gmac_miiphy_read(struct mii_dev *bus, int phyaddr, int devad, int reg)
 		return -1;
 	}
 
-	value = readl(GMAC_MII_DATA_ADDR) & 0xffff;
-	debug("MII read data 0x%x\n", value);
-	return value;
+	*value = readl(GMAC_MII_DATA_ADDR) & 0xffff;
+	debug("MII read data 0x%x\n", *value);
+	return 0;
 }
 
-int gmac_miiphy_write(struct mii_dev *bus, int phyaddr, int devad, int reg,
-		      u16 value)
+int gmac_miiphy_write(const char *devname, unsigned char phyaddr,
+			 unsigned char reg, unsigned short value)
 {
 	uint32_t tmp = 0;
+
+	(void)devname;
 
 	/* Busy wait timeout is 1ms */
 	if (gmac_mii_busywait(1000)) {

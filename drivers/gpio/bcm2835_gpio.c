@@ -10,7 +10,6 @@
 #include <errno.h>
 #include <asm/gpio.h>
 #include <asm/io.h>
-#include <fdtdec.h>
 
 struct bcm2835_gpios {
 	struct bcm2835_gpio_regs *reg;
@@ -45,6 +44,15 @@ static int bcm2835_gpio_direction_output(struct udevice *dev, unsigned gpio,
 	return 0;
 }
 
+static bool bcm2835_gpio_is_output(const struct bcm2835_gpios *gpios, int gpio)
+{
+	u32 val;
+
+	val = readl(&gpios->reg->gpfsel[BCM2835_GPIO_FSEL_BANK(gpio)]);
+	val &= BCM2835_GPIO_FSEL_MASK << BCM2835_GPIO_FSEL_SHIFT(gpio);
+	return val ? true : false;
+}
+
 static int bcm2835_get_value(const struct bcm2835_gpios *gpios, unsigned gpio)
 {
 	unsigned val;
@@ -73,28 +81,15 @@ static int bcm2835_gpio_set_value(struct udevice *dev, unsigned gpio,
 	return 0;
 }
 
-int bcm2835_gpio_get_func_id(struct udevice *dev, unsigned gpio)
-{
-	struct bcm2835_gpios *gpios = dev_get_priv(dev);
-	u32 val;
-
-	val = readl(&gpios->reg->gpfsel[BCM2835_GPIO_FSEL_BANK(gpio)]);
-
-	return (val >> BCM2835_GPIO_FSEL_SHIFT(gpio) & BCM2835_GPIO_FSEL_MASK);
-}
-
 static int bcm2835_gpio_get_function(struct udevice *dev, unsigned offset)
 {
-	int funcid = bcm2835_gpio_get_func_id(dev, offset);
+	struct bcm2835_gpios *gpios = dev_get_priv(dev);
 
-	switch (funcid) {
-	case BCM2835_GPIO_OUTPUT:
+	/* GPIOF_FUNC is not implemented yet */
+	if (bcm2835_gpio_is_output(gpios, offset))
 		return GPIOF_OUTPUT;
-	case BCM2835_GPIO_INPUT:
+	else
 		return GPIOF_INPUT;
-	default:
-		return GPIOF_FUNC;
-	}
 }
 
 
@@ -110,7 +105,7 @@ static int bcm2835_gpio_probe(struct udevice *dev)
 {
 	struct bcm2835_gpios *gpios = dev_get_priv(dev);
 	struct bcm2835_gpio_platdata *plat = dev_get_platdata(dev);
-	struct gpio_dev_priv *uc_priv = dev_get_uclass_priv(dev);
+	struct gpio_dev_priv *uc_priv = dev->uclass_priv;
 
 	uc_priv->bank_name = "GPIO";
 	uc_priv->gpio_count = BCM2835_GPIO_COUNT;
@@ -119,34 +114,10 @@ static int bcm2835_gpio_probe(struct udevice *dev)
 	return 0;
 }
 
-#if CONFIG_IS_ENABLED(OF_CONTROL)
-static const struct udevice_id bcm2835_gpio_id[] = {
-	{.compatible = "brcm,bcm2835-gpio"},
-	{}
-};
-
-static int bcm2835_gpio_ofdata_to_platdata(struct udevice *dev)
-{
-	struct bcm2835_gpio_platdata *plat = dev_get_platdata(dev);
-	fdt_addr_t addr;
-
-	addr = dev_get_addr(dev);
-	if (addr == FDT_ADDR_T_NONE)
-		return -EINVAL;
-
-	plat->base = addr;
-	return 0;
-}
-#endif
-
 U_BOOT_DRIVER(gpio_bcm2835) = {
 	.name	= "gpio_bcm2835",
 	.id	= UCLASS_GPIO,
-	.of_match = of_match_ptr(bcm2835_gpio_id),
-	.ofdata_to_platdata = of_match_ptr(bcm2835_gpio_ofdata_to_platdata),
-	.platdata_auto_alloc_size = sizeof(struct bcm2835_gpio_platdata),
 	.ops	= &gpio_bcm2835_ops,
 	.probe	= bcm2835_gpio_probe,
-	.flags	= DM_FLAG_PRE_RELOC,
 	.priv_auto_alloc_size = sizeof(struct bcm2835_gpios),
 };

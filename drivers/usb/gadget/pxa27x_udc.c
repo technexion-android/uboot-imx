@@ -10,10 +10,11 @@
 
 
 #include <common.h>
-#include <asm/arch/hardware.h>
+#include <config.h>
 #include <asm/byteorder.h>
-#include <asm/io.h>
 #include <usbdevice.h>
+#include <asm/arch/hardware.h>
+#include <asm/io.h>
 #include <usb/pxa27x_udc.h>
 #include <usb/udc.h>
 

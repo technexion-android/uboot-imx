@@ -1,6 +1,6 @@
 /*
  * (C) Copyright 2013
- * Andreas Bießmann <andreas@biessmann.org>
+ * Andreas Bießmann <andreas.devel@googlemail.com>
  *
  * This file consolidates all the different hang() functions implemented in
  * u-boot.

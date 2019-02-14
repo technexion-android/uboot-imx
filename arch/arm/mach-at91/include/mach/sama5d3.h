@@ -158,9 +158,6 @@
 #define ATMEL_BASE_RTC		0xfffffeb0
 /* Reserved:	0xfffffee0 - 0xffffffff */
 
-#define ATMEL_CHIPID_CIDR	0xffffee40
-#define ATMEL_CHIPID_EXID	0xffffee44
-
 /*
  * Internal Memory.
  */

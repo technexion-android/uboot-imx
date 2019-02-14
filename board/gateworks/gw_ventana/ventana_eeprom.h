@@ -109,9 +109,7 @@ enum {
 	GW52xx,
 	GW53xx,
 	GW54xx,
-	GW551x,
 	GW552x,
-	GW553x,
 	GW_UNKNOWN,
 	GW_BADCRC,
 };

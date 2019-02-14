@@ -13,7 +13,7 @@
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/sys_proto.h>
-#include <linux/errno.h>
+#include <asm/errno.h>
 #include <asm/gpio.h>
 #include <asm/io.h>
 #include <asm/imx-common/mxc_i2c.h>
@@ -25,7 +25,6 @@
 #include <mmc.h>
 #include <power/pfuze100_pmic.h>
 #include <power/pmic.h>
-#include <spi_flash.h>
 
 #include "tqma6_bb.h"
 
@@ -77,7 +76,7 @@ static iomux_v3_cfg_t const tqma6_usdhc3_pads[] = {
 
 /*
  * According to board_mmc_init() the following map is done:
- * (U-Boot device node)    (Physical Port)
+ * (U-boot device node)    (Physical Port)
  * mmc0                    eMMC (SD3) on TQMa6
  * mmc1 .. n               optional slots used on baseboard
  */
@@ -146,7 +145,7 @@ static unsigned const tqma6_ecspi1_cs[] = {
 	TQMA6_SF_CS_GPIO,
 };
 
-__weak void tqma6_iomuxc_spi(void)
+static void tqma6_iomuxc_spi(void)
 {
 	unsigned i;
 

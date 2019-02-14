@@ -44,8 +44,6 @@ struct f_dfu {
 	unsigned int                    poll_timeout;
 };
 
-struct dfu_entity *dfu_defer_flush;
-
 typedef int (*dfu_state_fn) (struct f_dfu *,
 			     const struct usb_ctrlrequest *,
 			     struct usb_gadget *,
@@ -159,7 +157,7 @@ static void dnload_request_complete(struct usb_ep *ep, struct usb_request *req)
 	int ret;
 
 	ret = dfu_write(dfu_get_entity(f_dfu->altsetting), req->buf,
-			req->actual, f_dfu->blk_seq_num);
+			req->length, f_dfu->blk_seq_num);
 	if (ret) {
 		f_dfu->dfu_status = DFU_STATUS_errUNKNOWN;
 		f_dfu->dfu_state = DFU_STATE_dfuERROR;
@@ -169,7 +167,14 @@ static void dnload_request_complete(struct usb_ep *ep, struct usb_request *req)
 static void dnload_request_flush(struct usb_ep *ep, struct usb_request *req)
 {
 	struct f_dfu *f_dfu = req->context;
-	dfu_set_defer_flush(dfu_get_entity(f_dfu->altsetting));
+	int ret;
+
+	ret = dfu_flush(dfu_get_entity(f_dfu->altsetting), req->buf,
+			req->length, f_dfu->blk_seq_num);
+	if (ret) {
+		f_dfu->dfu_status = DFU_STATUS_errUNKNOWN;
+		f_dfu->dfu_state = DFU_STATE_dfuERROR;
+	}
 }
 
 static inline int dfu_get_manifest_timeout(struct dfu_entity *dfu)
@@ -178,7 +183,7 @@ static inline int dfu_get_manifest_timeout(struct dfu_entity *dfu)
 		DFU_MANIFEST_POLL_TIMEOUT;
 }
 
-static int handle_getstatus(struct usb_request *req)
+static void handle_getstatus(struct usb_request *req)
 {
 	struct dfu_status *dstat = (struct dfu_status *)req->buf;
 	struct f_dfu *f_dfu = req->context;
@@ -210,16 +215,14 @@ static int handle_getstatus(struct usb_request *req)
 	dstat->bStatus = f_dfu->dfu_status;
 	dstat->bState = f_dfu->dfu_state;
 	dstat->iString = 0;
-
-	return sizeof(struct dfu_status);
 }
 
-static int handle_getstate(struct usb_request *req)
+static void handle_getstate(struct usb_request *req)
 {
 	struct f_dfu *f_dfu = req->context;
 
 	((u8 *)req->buf)[0] = f_dfu->dfu_state;
-	return sizeof(u8);
+	req->actual = sizeof(u8);
 }
 
 static inline void to_dfu_mode(struct f_dfu *f_dfu)
@@ -270,10 +273,11 @@ static int state_app_idle(struct f_dfu *f_dfu,
 
 	switch (ctrl->bRequest) {
 	case USB_REQ_DFU_GETSTATUS:
-		value = handle_getstatus(req);
+		handle_getstatus(req);
+		value = RET_STAT_LEN;
 		break;
 	case USB_REQ_DFU_GETSTATE:
-		value = handle_getstate(req);
+		handle_getstate(req);
 		break;
 	case USB_REQ_DFU_DETACH:
 		f_dfu->dfu_state = DFU_STATE_appDETACH;
@@ -297,10 +301,11 @@ static int state_app_detach(struct f_dfu *f_dfu,
 
 	switch (ctrl->bRequest) {
 	case USB_REQ_DFU_GETSTATUS:
-		value = handle_getstatus(req);
+		handle_getstatus(req);
+		value = RET_STAT_LEN;
 		break;
 	case USB_REQ_DFU_GETSTATE:
-		value = handle_getstate(req);
+		handle_getstate(req);
 		break;
 	default:
 		f_dfu->dfu_state = DFU_STATE_appIDLE;
@@ -341,10 +346,11 @@ static int state_dfu_idle(struct f_dfu *f_dfu,
 		value = RET_ZLP;
 		break;
 	case USB_REQ_DFU_GETSTATUS:
-		value = handle_getstatus(req);
+		handle_getstatus(req);
+		value = RET_STAT_LEN;
 		break;
 	case USB_REQ_DFU_GETSTATE:
-		value = handle_getstate(req);
+		handle_getstate(req);
 		break;
 	case USB_REQ_DFU_DETACH:
 		/*
@@ -380,10 +386,11 @@ static int state_dfu_dnload_sync(struct f_dfu *f_dfu,
 
 	switch (ctrl->bRequest) {
 	case USB_REQ_DFU_GETSTATUS:
-		value = handle_getstatus(req);
+		handle_getstatus(req);
+		value = RET_STAT_LEN;
 		break;
 	case USB_REQ_DFU_GETSTATE:
-		value = handle_getstate(req);
+		handle_getstate(req);
 		break;
 	default:
 		f_dfu->dfu_state = DFU_STATE_dfuERROR;
@@ -403,7 +410,8 @@ static int state_dfu_dnbusy(struct f_dfu *f_dfu,
 
 	switch (ctrl->bRequest) {
 	case USB_REQ_DFU_GETSTATUS:
-		value = handle_getstatus(req);
+		handle_getstatus(req);
+		value = RET_STAT_LEN;
 		break;
 	default:
 		f_dfu->dfu_state = DFU_STATE_dfuERROR;
@@ -434,10 +442,11 @@ static int state_dfu_dnload_idle(struct f_dfu *f_dfu,
 		value = RET_ZLP;
 		break;
 	case USB_REQ_DFU_GETSTATUS:
-		value = handle_getstatus(req);
+		handle_getstatus(req);
+		value = RET_STAT_LEN;
 		break;
 	case USB_REQ_DFU_GETSTATE:
-		value = handle_getstate(req);
+		handle_getstate(req);
 		break;
 	default:
 		f_dfu->dfu_state = DFU_STATE_dfuERROR;
@@ -459,12 +468,13 @@ static int state_dfu_manifest_sync(struct f_dfu *f_dfu,
 	case USB_REQ_DFU_GETSTATUS:
 		/* We're MainfestationTolerant */
 		f_dfu->dfu_state = DFU_STATE_dfuMANIFEST;
-		value = handle_getstatus(req);
+		handle_getstatus(req);
 		f_dfu->blk_seq_num = 0;
+		value = RET_STAT_LEN;
 		req->complete = dnload_request_flush;
 		break;
 	case USB_REQ_DFU_GETSTATE:
-		value = handle_getstate(req);
+		handle_getstate(req);
 		break;
 	default:
 		f_dfu->dfu_state = DFU_STATE_dfuERROR;
@@ -486,12 +496,13 @@ static int state_dfu_manifest(struct f_dfu *f_dfu,
 	case USB_REQ_DFU_GETSTATUS:
 		/* We're MainfestationTolerant */
 		f_dfu->dfu_state = DFU_STATE_dfuIDLE;
-		value = handle_getstatus(req);
+		handle_getstatus(req);
 		f_dfu->blk_seq_num = 0;
+		value = RET_STAT_LEN;
 		puts("DOWNLOAD ... OK\nCtrl+C to exit ...\n");
 		break;
 	case USB_REQ_DFU_GETSTATE:
-		value = handle_getstate(req);
+		handle_getstate(req);
 		break;
 	default:
 		f_dfu->dfu_state = DFU_STATE_dfuERROR;
@@ -524,10 +535,11 @@ static int state_dfu_upload_idle(struct f_dfu *f_dfu,
 		value = RET_ZLP;
 		break;
 	case USB_REQ_DFU_GETSTATUS:
-		value = handle_getstatus(req);
+		handle_getstatus(req);
+		value = RET_STAT_LEN;
 		break;
 	case USB_REQ_DFU_GETSTATE:
-		value = handle_getstate(req);
+		handle_getstate(req);
 		break;
 	default:
 		f_dfu->dfu_state = DFU_STATE_dfuERROR;
@@ -547,10 +559,11 @@ static int state_dfu_error(struct f_dfu *f_dfu,
 
 	switch (ctrl->bRequest) {
 	case USB_REQ_DFU_GETSTATUS:
-		value = handle_getstatus(req);
+		handle_getstatus(req);
+		value = RET_STAT_LEN;
 		break;
 	case USB_REQ_DFU_GETSTATE:
-		value = handle_getstate(req);
+		handle_getstate(req);
 		break;
 	case USB_REQ_DFU_CLRSTATUS:
 		f_dfu->dfu_state = DFU_STATE_dfuIDLE;
@@ -628,7 +641,7 @@ dfu_prepare_strings(struct f_dfu *f_dfu, int n)
 
 	f_dfu->strings = calloc(sizeof(struct usb_string), n + 1);
 	if (!f_dfu->strings)
-		return -ENOMEM;
+		goto enomem;
 
 	for (i = 0; i < n; ++i) {
 		de = dfu_get_entity(i);
@@ -639,6 +652,14 @@ dfu_prepare_strings(struct f_dfu *f_dfu, int n)
 	f_dfu->strings[i].s = NULL;
 
 	return 0;
+
+enomem:
+	while (i)
+		f_dfu->strings[--i].s = NULL;
+
+	free(f_dfu->strings);
+
+	return -ENOMEM;
 }
 
 static int dfu_prepare_function(struct f_dfu *f_dfu, int n)
@@ -646,7 +667,7 @@ static int dfu_prepare_function(struct f_dfu *f_dfu, int n)
 	struct usb_interface_descriptor *d;
 	int i = 0;
 
-	f_dfu->function = calloc(sizeof(struct usb_descriptor_header *), n + 2);
+	f_dfu->function = calloc(sizeof(struct usb_descriptor_header *), n + 1);
 	if (!f_dfu->function)
 		goto enomem;
 
@@ -665,14 +686,6 @@ static int dfu_prepare_function(struct f_dfu *f_dfu, int n)
 
 		f_dfu->function[i] = (struct usb_descriptor_header *)d;
 	}
-
-	/* add DFU Functional Descriptor */
-	f_dfu->function[i] = calloc(sizeof(dfu_func), 1);
-	if (!f_dfu->function[i])
-		goto enomem;
-	memcpy(f_dfu->function[i], &dfu_func, sizeof(dfu_func));
-
-	i++;
 	f_dfu->function[i] = NULL;
 
 	return 0;
@@ -691,7 +704,6 @@ static int dfu_bind(struct usb_configuration *c, struct usb_function *f)
 {
 	struct usb_composite_dev *cdev = c->cdev;
 	struct f_dfu *f_dfu = func_to_dfu(f);
-	const char *s;
 	int alt_num = dfu_get_alt_number();
 	int rv, id, i;
 
@@ -724,10 +736,6 @@ static int dfu_bind(struct usb_configuration *c, struct usb_function *f)
 	stringtab_dfu.strings = f_dfu->strings;
 
 	cdev->req->context = f_dfu;
-
-	s = getenv("serial#");
-	if (s)
-		g_dnl_set_serialnumber((char *)s);
 
 error:
 	return rv;

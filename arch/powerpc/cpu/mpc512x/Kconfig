@@ -6,7 +6,6 @@ config SYS_CPU
 
 choice
 	prompt "Target select"
-	optional
 
 config TARGET_PDM360NG
 	bool "Support pdm360ng"

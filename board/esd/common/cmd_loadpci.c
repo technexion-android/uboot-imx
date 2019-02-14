@@ -7,7 +7,6 @@
 
 #include <common.h>
 #include <command.h>
-#include <console.h>
 #if !defined(CONFIG_440)
 #include <asm/4xx_pci.h>
 #endif

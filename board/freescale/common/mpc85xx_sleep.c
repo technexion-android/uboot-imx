@@ -7,9 +7,6 @@
 #include <common.h>
 #include <asm/immap_85xx.h>
 #include "sleep.h"
-#ifdef CONFIG_U_QE
-#include <fsl_qe.h>
-#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -43,16 +40,16 @@ void fsl_dp_disable_console(void)
  */
 static void dp_ddr_restore(void)
 {
-	u64 *src, *dst;
+	volatile u64 *src, *dst;
 	int i;
 	struct ccsr_scfg __iomem *scfg = (void *)CONFIG_SYS_MPC85xx_SCFG;
 
 	/* get the address of ddr date from SPARECR3 */
-	src = (u64 *)(in_be32(&scfg->sparecr[2]) + DDR_BUFF_LEN - 8);
-	dst = (u64 *)(CONFIG_SYS_SDRAM_BASE + DDR_BUFF_LEN - 8);
+	src = (u64 *)in_be32(&scfg->sparecr[2]);
+	dst = (u64 *)CONFIG_SYS_SDRAM_BASE;
 
 	for (i = 0; i < DDR_BUFF_LEN / 8; i++)
-		*dst-- = *src--;
+		*dst++ = *src++;
 
 	flush_dcache();
 }
@@ -68,11 +65,6 @@ static void dp_resume_prepare(void)
 	disable_cpc_sram();
 #endif
 	enable_cpc();
-
-#ifdef CONFIG_U_QE
-	u_qe_resume();
-#endif
-
 }
 
 int fsl_dp_resume(void)

@@ -21,6 +21,7 @@ import glob
 import multiprocessing
 import optparse
 import os
+import subprocess
 import sys
 import tempfile
 import time

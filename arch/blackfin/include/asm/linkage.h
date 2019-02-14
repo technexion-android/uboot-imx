@@ -1,5 +1,5 @@
 /*
- * U-Boot - linkage.h
+ * U-boot - linkage.h
  *
  * Copyright (c) 2005-2007 Analog Devices Inc.
  *

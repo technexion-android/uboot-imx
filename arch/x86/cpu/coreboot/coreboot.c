@@ -7,10 +7,16 @@
  */
 
 #include <common.h>
-#include <fdtdec.h>
-#include <asm/io.h>
+#include <asm/u-boot-x86.h>
+#include <flash.h>
+#include <netdev.h>
+#include <ns16550.h>
 #include <asm/msr.h>
+#include <asm/cache.h>
+#include <asm/cpu.h>
+#include <asm/io.h>
 #include <asm/mtrr.h>
+#include <asm/arch/tables.h>
 #include <asm/arch/sysinfo.h>
 #include <asm/arch/timestamp.h>
 
@@ -39,10 +45,29 @@ int print_cpuinfo(void)
 	return default_print_cpuinfo();
 }
 
-static void board_final_cleanup(void)
+int last_stage_init(void)
 {
-	/*
-	 * Un-cache the ROM so the kernel has one
+	if (gd->flags & GD_FLG_COLD_BOOT)
+		timestamp_add_to_bootstage();
+
+	return 0;
+}
+
+#ifndef CONFIG_SYS_NO_FLASH
+ulong board_flash_get_legacy(ulong base, int banknum, flash_info_t *info)
+{
+	return 0;
+}
+#endif
+
+int board_eth_init(bd_t *bis)
+{
+	return pci_eth_init(bis);
+}
+
+void board_final_cleanup(void)
+{
+	/* Un-cache the ROM so the kernel has one
 	 * more MTRR available.
 	 *
 	 * Coreboot should have assigned this to the
@@ -61,32 +86,21 @@ static void board_final_cleanup(void)
 		mtrr_close(&state);
 	}
 
-	if (!fdtdec_get_config_bool(gd->fdt_blob, "u-boot,no-apm-finalize")) {
-		/*
-		 * Issue SMI to coreboot to lock down ME and registers
-		 * when allowed via device tree
-		 */
-		printf("Finalizing coreboot\n");
-		outb(0xcb, 0xb2);
-	}
+	/* Issue SMI to Coreboot to lock down ME and registers */
+	printf("Finalizing Coreboot\n");
+	outb(0xcb, 0xb2);
 }
 
-int last_stage_init(void)
+void panic_puts(const char *str)
 {
-	if (gd->flags & GD_FLG_COLD_BOOT)
-		timestamp_add_to_bootstage();
+	NS16550_t port = (NS16550_t)0x3f8;
 
-	board_final_cleanup();
-
-	return 0;
+	NS16550_init(port, 1);
+	while (*str)
+		NS16550_putc(port, *str++);
 }
 
 int misc_init_r(void)
-{
-	return 0;
-}
-
-int arch_misc_init(void)
 {
 	return 0;
 }

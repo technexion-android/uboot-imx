@@ -79,13 +79,9 @@ static int et1011c_parse_status(struct phy_device *phydev)
 
 static int et1011c_startup(struct phy_device *phydev)
 {
-	int ret;
-
-	ret = genphy_update_link(phydev);
-	if (ret)
-		return ret;
-
-	return et1011c_parse_status(phydev);
+	genphy_update_link(phydev);
+	et1011c_parse_status(phydev);
+	return 0;
 }
 
 static struct phy_driver et1011c_driver = {

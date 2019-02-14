@@ -9,7 +9,7 @@
  */
 
 #include <common.h>
-#include <linux/errno.h>
+#include <asm/errno.h>
 #include <asm/gpio.h>
 #include <asm/hardware.h>
 #include <linux/list.h>
@@ -1199,7 +1199,7 @@ static struct usba_udc controller = {
 	},
 };
 
-int usb_gadget_handle_interrupts(int index)
+int usb_gadget_handle_interrupts(void)
 {
 	struct usba_udc *udc = &controller;
 

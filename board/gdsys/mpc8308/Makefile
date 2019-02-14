@@ -7,4 +7,3 @@
 
 obj-y := mpc8308.o sdram.o
 obj-$(CONFIG_HRCON) += hrcon.o
-obj-$(CONFIG_STRIDER) += strider.o

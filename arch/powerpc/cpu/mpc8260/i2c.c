@@ -9,7 +9,6 @@
  */
 
 #include <common.h>
-#include <console.h>
 
 #if defined(CONFIG_HARD_I2C)
 

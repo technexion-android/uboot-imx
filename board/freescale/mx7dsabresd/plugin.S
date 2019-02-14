@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2014-2016 Freescale Semiconductor, Inc.
- * Copyright 2017 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -32,7 +31,7 @@
 
 NO_DELAY:
 	/*TO 1.0*/
-	ldr r1, =0x00000b24
+	ldr r1, =0x00000d6e
 	str r1, [r0, #0x9c]
 
 TUNE_END:
@@ -141,13 +140,11 @@ FREQ_DEFAULT_533:
 
 	ldr r1, =0x00000016
 	str r1, [r0, #0x200]
-	ldr r1, =0x00080808
+	ldr r1, =0x00171717
 	str r1, [r0, #0x204]
-	ldr r1, =0x00000f0f
-	str r1, [r0, #0x210]
-	ldr r1, =0x07070707
+	ldr r1, =0x04040404
 	str r1, [r0, #0x214]
-	ldr r1, =0x0f070707
+	ldr r1, =0x0f040404
 	str r1, [r0, #0x218]
 
 	ldr r1, =0x06000604
@@ -189,6 +186,8 @@ wait_zq:
 	tst r1, #0x1
 	beq wait_zq
 
+	ldr r1, =0x0e447304
+	str r1, [r0, #0xc0]
 	ldr r1, =0x0e407304
 	str r1, [r0, #0xc0]
 
@@ -215,11 +214,6 @@ wait_stat:
 .endm
 
 .macro imx7_clock_gating
-#ifdef CONFIG_IMX_OPTEE
-	ldr r0, =0x30340024
-	ldr r1, =0x1
-	str r1, [r0]
-#endif
 .endm
 
 .macro imx7_qos_setting

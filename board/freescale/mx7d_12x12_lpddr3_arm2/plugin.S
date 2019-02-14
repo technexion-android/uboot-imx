@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2014-2016 Freescale Semiconductor, Inc.
- * Copyright 2017 NXP
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -152,7 +151,7 @@ TUNE_END:
 	str	r7, [r3, r6]
 
 	ldr	r6, =0x108
-	ldr	r7, =0x03060708
+	ldr	r7, =0x03060707
 	str	r7, [r3, r6]
 
 	ldr	r6, =0x10c
@@ -172,10 +171,6 @@ TUNE_END:
 	str	r7, [r3, r6]
 
 	ldr	r6, =0x11c
-	ldr	r7, =0x00000202
-	str	r7, [r3, r6]
-
-	ldr	r6, =0x120
 	ldr	r7, =0x00000202
 	str	r7, [r3, r6]
 
@@ -200,23 +195,19 @@ TUNE_END:
 	str	r7, [r3, r6]
 
 	ldr	r6, =0x204
-	ldr	r7, =0x00090909
-	str	r7, [r3, r6]
-
-	ldr	r6, =0x210
-	ldr	r7, =0xF00
+	ldr	r7, =0x00171717
 	str	r7, [r3, r6]
 
 	ldr	r6, =0x214
-	ldr	r7, =0x08080808
+	ldr	r7, =0x05050505
 	str	r7, [r3, r6]
 
 	ldr	r6, =0x218
-	ldr	r7, =0x0f0f0808
+	ldr	r7, =0x0F0F0505
 	str	r7, [r3, r6]
 
 	ldr	r6, =0x240
-	ldr	r7, =0x06000600
+	ldr	r7, =0x06000601
 	str	r7, [r3, r6]
 
 	ldr	r6, =0x244
@@ -236,10 +227,10 @@ TUNE_END:
 
 	ldr	r7, [r1, #0x800]
 	and	r7, r7, #0xFF
-	cmp	r7, #0x11
-	bne	2f
+	cmp	r7, #0x10
+	beq	2f
 
-	/* for TO1.1 */
+	/* TO1.1 */
 	ldr	r7, [r11]
 	bic	r7, r7, #(1 << 27)
 	str	r7, [r11]
@@ -276,14 +267,10 @@ TUNE_END:
 	ldr	r7, =0x0007080C
 	str	r7, [r4, r6]
 
-	ldr	r6, =0xb0
-	ldr	r7, =0x1010007e
-	str	r7, [r4, r6]
-
 	ldr     r7, [r1, #0x800]
 	and     r7, r7, #0xFF
-	cmp     r7, #0x11
-	bne     4f
+	cmp     r7, #0x10
+	beq     4f
 
 	ldr	r6, =0x7c
 	ldr	r7, =0x1c1c1c1c
@@ -305,6 +292,7 @@ TUNE_END:
 	ldr	r7, =0x30303030
 	str	r7, [r4, r6]
 
+4:
 	ldr	r6, =0x1c
 	ldr	r7, =0x01010000
 	str	r7, [r4, r6]
@@ -313,18 +301,6 @@ TUNE_END:
 	ldr	r7, =0x0DB60D6E
 	str	r7, [r4, r6]
 
-	b	5f
-
-4:
-	ldr	r6, =0x1c
-	ldr	r7, =0x01010000
-	str	r7, [r4, r6]
-
-	ldr	r6, =0x9c
-	ldr	r7, =0x00000b24
-	str	r7, [r4, r6]
-
-5:
 	ldr	r6, =0x20
 	ldr	r7, =0x0a0a0a0a
 	str	r7, [r4, r6]
@@ -342,7 +318,15 @@ TUNE_END:
 	str	r7, [r4, r6]
 
 	ldr	r6, =0xc0
-	ldr	r7, =0x0e487304
+	ldr	r7, =0x0e407304
+	str	r7, [r4, r6]
+
+	ldr	r6, =0xc0
+	ldr	r7, =0x0e447304
+	str	r7, [r4, r6]
+
+	ldr	r6, =0xc0
+	ldr	r7, =0x0e447306
 	str	r7, [r4, r6]
 
 	ldr	r6, =0xc0
@@ -350,16 +334,7 @@ TUNE_END:
 	str	r7, [r4, r6]
 
 	ldr	r6, =0xc0
-	ldr	r7, =0x0e4c7306
-	str	r7, [r4, r6]
-
-6:
-	ldr	r7, [r4, #0xc4]
-	tst	r7, #0x1
-	beq	6b
-
-	ldr	r6, =0xc0
-	ldr	r7, =0x0e487304
+	ldr	r7, =0x0e487306
 	str	r7, [r4, r6]
 
 	ldr	r7, =0x0
@@ -414,8 +389,6 @@ TUNE_END:
 	and	r7, r7, #0x3
 	cmp	r7, #0x1
 	bne	15b
-
-	imx7_qos_setting
 
 	/* enable port */
 	ldr	r7, =0x1
@@ -495,16 +468,16 @@ TUNE_END:
 
 	ldr r1, =0x00000016
 	str r1, [r0, #0x200]
-	ldr r1, =0x00090909
+	ldr r1, =0x00171717
 	str r1, [r0, #0x204]
 	ldr r1, =0x00000f00
 	str r1, [r0, #0x210]
-	ldr r1, =0x08080808
+	ldr r1, =0x05050505
 	str r1, [r0, #0x214]
-	ldr r1, =0x0f0f0808
+	ldr r1, =0x0f0f0505
 	str r1, [r0, #0x218]
 
-	ldr r1, =0x06000600
+	ldr r1, =0x06000601
 	str r1, [r0, #0x240]
 	mov r1, #0x0
 	str r1, [r0, #0x244]
@@ -528,20 +501,9 @@ TUNE_END:
 	str r1, [r0, #0xb0]
 	ldr r1, =0x01010000
 	str r1, [r0, #0x1c]
-
-	ldr r2, =ANATOP_BASE_ADDR
-	ldr r3, [r2, #0x800]
-	and r3, r3, #0xFF
-	cmp r3, #0x11
-	bne	17f
-
 	ldr r1, =0x0db60d6e
 	str r1, [r0, #0x9c]
-	b	18f
-17:
-	ldr r1, =0x00000b24
-	str r1, [r0, #0x9c]
-18:
+
 	ldr r1, =0x06060606
 	str r1, [r0, #0x30]
 	ldr r1, =0x0a0a0a0a
@@ -553,11 +515,13 @@ TUNE_END:
 
 	ldr r1, =0x0000000f
 	str r1, [r0, #0x18]
-	ldr r1, =0x0e487304
+	ldr r1, =0x1e487304
 	str r1, [r0, #0xc0]
-	ldr r1, =0x0e4c7304
+	ldr r1, =0x1e487304
 	str r1, [r0, #0xc0]
-	ldr r1, =0x0e4c7306
+	ldr r1, =0x1e487306
+	str r1, [r0, #0xc0]
+	ldr r1, =0x1e4c7304
 	str r1, [r0, #0xc0]
 
 wait_zq:
@@ -565,7 +529,7 @@ wait_zq:
 	tst r1, #0x1
 	beq wait_zq
 
-	ldr r1, =0x0e487304
+	ldr r1, =0x1e487304
 	str r1, [r0, #0xc0]
 
 	ldr r0, =CCM_BASE_ADDR
@@ -588,65 +552,9 @@ wait_stat:
 .endm
 
 .macro imx7_clock_gating
-#ifdef CONFIG_IMX_OPTEE
-	ldr r0, =0x30340024
-	ldr r1, =0x1
-	str r1, [r0]
-#endif
 .endm
 
 .macro imx7_qos_setting
-	ldr r0, =REGS_QOS_BASE
-	ldr r1, =0
-	str r1, [r0, #0]
-
-	ldr r1, =0
-	str r1, [r0, #0x60]
-
-	ldr r0, =REGS_QOS_EPDC
-	ldr r1, =0
-	str r1, [r0, #0]
-
-	ldr r0, =REGS_QOS_PXP0
-	ldr r1, =0
-	str r1, [r0, #0]
-
-	ldr r0, =REGS_QOS_PXP1
-	ldr r1, =0
-	str r1, [r0, #0]
-
-	ldr r0, =REGS_QOS_EPDC
-	ldr r1, =0x0f020f22
-	str r1, [r0, #0xd0]
-	str r1, [r0, #0xe0]
-
-	ldr r0, =REGS_QOS_PXP0
-	ldr r1, =0x1
-	str r1, [r0, #0]
-	ldr r0, =REGS_QOS_PXP1
-	str r1, [r0, #0]
-
-	ldr r0, =REGS_QOS_PXP0
-	ldr r1, =0x0f020222
-	str r1, [r0, #0x50]
-	ldr r0, =REGS_QOS_PXP1
-	str r1, [r0, #0x50]
-
-	ldr r0, =REGS_QOS_PXP0
-	ldr r1, =0x0f020222
-	str r1, [r0, #0x60]
-	ldr r0, =REGS_QOS_PXP1
-	str r1, [r0, #0x60]
-
-	ldr r0, =REGS_QOS_PXP0
-	ldr r1, =0x0f020422
-	str r1, [r0, #0x70]
-	ldr r0, =REGS_QOS_PXP1
-	str r1, [r0, #0x70]
-
-	ldr r0, =IOMUXC_GPR_BASE_ADDR
-	ldr r1, =0xe080
-	str r1, [r0, #0x34]
 .endm
 
 .macro imx7_ddr_setting

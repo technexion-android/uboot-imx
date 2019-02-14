@@ -1,5 +1,5 @@
 /*
- * U-Boot - u-boot.lds.S
+ * U-boot - u-boot.lds.S
  *
  * Copyright (c) 2005-2010 Analog Device Inc.
  *

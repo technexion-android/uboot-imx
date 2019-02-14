@@ -1,7 +1,9 @@
 /*
  * Copyright 2008-2014 Freescale Semiconductor, Inc.
  *
- * SPDX-License-Identifier:	GPL-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * Version 2 as published by the Free Software Foundation.
  */
 
 #include <common.h>
@@ -20,7 +22,7 @@ compute_cas_latency(const unsigned int ctrl_num,
 	unsigned int common_caslat;
 	unsigned int caslat_actual;
 	unsigned int retry = 16;
-	unsigned int tmp = ~0;
+	unsigned int tmp;
 	const unsigned int mclk_ps = get_memory_clk_period_ps(ctrl_num);
 #ifdef CONFIG_SYS_FSL_DDR3
 	const unsigned int taamax = 20000;
@@ -29,7 +31,8 @@ compute_cas_latency(const unsigned int ctrl_num,
 #endif
 
 	/* compute the common CAS latency supported between slots */
-	for (i = 0; i < number_of_dimms; i++) {
+	tmp = dimm_params[0].caslat_x;
+	for (i = 1; i < number_of_dimms; i++) {
 		if (dimm_params[i].n_ranks)
 			tmp &= dimm_params[i].caslat_x;
 	}
@@ -60,8 +63,8 @@ compute_cas_latency(const unsigned int ctrl_num,
 	 * 18ns for all DDR4 speed grades.
 	 */
 	if (caslat_actual * mclk_ps > taamax) {
-		printf("The chosen cas latency %d is too large\n",
-		       caslat_actual);
+		printf("The choosen cas latency %d is too large\n",
+			caslat_actual);
 	}
 	outpdimm->lowest_common_spd_caslat = caslat_actual;
 	debug("lowest_common_spd_caslat is 0x%x\n", caslat_actual);

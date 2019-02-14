@@ -123,7 +123,6 @@ void set_default_env(const char *s)
 		error("Environment import failed: errno = %d\n", errno);
 
 	gd->flags |= GD_FLG_ENV_READY;
-	gd->flags |= GD_FLG_ENV_DEFAULT;
 }
 
 
@@ -145,7 +144,7 @@ int set_default_vars(int nvars, char * const vars[])
  * env_aes_cbc_get_key() - Get AES-128-CBC key for the environment
  *
  * This function shall return 16-byte array containing AES-128 key used
- * to encrypt and decrypt the environment. This function must be overridden
+ * to encrypt and decrypt the environment. This function must be overriden
  * by the implementer as otherwise the environment encryption will not
  * work.
  */
@@ -226,7 +225,7 @@ int env_import(const char *buf, int check)
 	return 0;
 }
 
-/* Export the environment and generate CRC for it. */
+/* Emport the environment and generate CRC for it. */
 int env_export(env_t *env_out)
 {
 	char *res;

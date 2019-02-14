@@ -2041,7 +2041,7 @@ extern void udc_disconnect(void)
 /*-------------------------------------------------------------------------*/
 
 extern int
-usb_gadget_handle_interrupts(int index)
+usb_gadget_handle_interrupts(void)
 {
 	return pxa25x_udc_irq();
 }

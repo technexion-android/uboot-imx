@@ -15,14 +15,7 @@
 
 #ifdef CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_SUNXI
-#endif
-
-#ifdef CONFIG_MACH_SUN8I_H3
-	#define CONFIG_SUNXI_USB_PHYS	4
-#elif defined CONFIG_MACH_SUN8I_A83T
-	#define CONFIG_SUNXI_USB_PHYS	3
-#else
-	#define CONFIG_SUNXI_USB_PHYS	2
+#define CONFIG_USB_MAX_CONTROLLER_COUNT	1
 #endif
 
 /*

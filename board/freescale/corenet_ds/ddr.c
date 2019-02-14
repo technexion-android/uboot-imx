@@ -1,7 +1,9 @@
 /*
  * Copyright 2009-2011 Freescale Semiconductor, Inc.
  *
- * SPDX-License-Identifier:	GPL-2.0
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * Version 2 as published by the Free Software Foundation.
  */
 
 #include <common.h>
@@ -19,7 +21,7 @@ DECLARE_GLOBAL_DATA_PTR;
  * Fixed sdram init -- doesn't use serial presence detect.
  */
 extern fixed_ddr_parm_t fixed_ddr_parm_0[];
-#if (CONFIG_SYS_NUM_DDR_CTLRS == 2)
+#if (CONFIG_NUM_DDR_CONTROLLERS == 2)
 extern fixed_ddr_parm_t fixed_ddr_parm_1[];
 #endif
 
@@ -56,7 +58,7 @@ phys_size_t fixed_sdram(void)
 	ddr_cfg_regs.ddr_cdr1 = DDR_CDR1_DHC_EN;
 	fsl_ddr_set_memctl_regs(&ddr_cfg_regs, 0, 0);
 
-#if (CONFIG_SYS_NUM_DDR_CTLRS == 2)
+#if (CONFIG_NUM_DDR_CONTROLLERS == 2)
 	memcpy(&ddr_cfg_regs,
 		fixed_ddr_parm_1[i].ddr_settings,
 		sizeof(ddr_cfg_regs));
@@ -76,7 +78,7 @@ phys_size_t fixed_sdram(void)
 			return 0;
 		}
 	} else {
-#if (CONFIG_SYS_NUM_DDR_CTLRS == 2)
+#if (CONFIG_NUM_DDR_CONTROLLERS == 2)
 		/* We require both controllers have identical DIMMs */
 		lawbar1_target_id = LAW_TRGT_IF_DDR_1;
 		if (set_ddr_laws(CONFIG_SYS_DDR_SDRAM_BASE,

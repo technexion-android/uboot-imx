@@ -19,7 +19,7 @@
 #include <linux/mtd/nand_ecc.h>
 #include <linux/compat.h>
 
-#include <linux/errno.h>
+#include <asm/errno.h>
 #include <asm/io.h>
 #include <asm/processor.h>
 #include <nand.h>
@@ -100,6 +100,7 @@
 #define NFC_WPC_UNLOCK		(1 << 2)
 
 struct mpc5121_nfc_prv {
+	struct mtd_info mtd;
 	struct nand_chip chip;
 	int irq;
 	void __iomem *regs;
@@ -116,8 +117,8 @@ static void mpc5121_nfc_done(struct mtd_info *mtd);
 /* Read NFC register */
 static inline u16 nfc_read(struct mtd_info *mtd, uint reg)
 {
-	struct nand_chip *chip = mtd_to_nand(mtd);
-	struct mpc5121_nfc_prv *prv = nand_get_controller_data(chip);
+	struct nand_chip *chip = mtd->priv;
+	struct mpc5121_nfc_prv *prv = chip->priv;
 
 	return in_be16(prv->regs + reg);
 }
@@ -125,8 +126,8 @@ static inline u16 nfc_read(struct mtd_info *mtd, uint reg)
 /* Write NFC register */
 static inline void nfc_write(struct mtd_info *mtd, uint reg, u16 val)
 {
-	struct nand_chip *chip = mtd_to_nand(mtd);
-	struct mpc5121_nfc_prv *prv = nand_get_controller_data(chip);
+	struct nand_chip *chip = mtd->priv;
+	struct mpc5121_nfc_prv *prv = chip->priv;
 
 	out_be16(prv->regs + reg, val);
 }
@@ -210,7 +211,7 @@ static void mpc5121_nfc_done(struct mtd_info *mtd)
 /* Do address cycle(s) */
 static void mpc5121_nfc_addr_cycle(struct mtd_info *mtd, int column, int page)
 {
-	struct nand_chip *chip = mtd_to_nand(mtd);
+	struct nand_chip *chip = mtd->priv;
 	u32 pagemask = chip->pagemask;
 
 	if (column != -1) {
@@ -282,8 +283,8 @@ static int mpc5121_nfc_dev_ready(struct mtd_info *mtd)
 static void mpc5121_nfc_command(struct mtd_info *mtd, unsigned command,
 				int column, int page)
 {
-	struct nand_chip *chip = mtd_to_nand(mtd);
-	struct mpc5121_nfc_prv *prv = nand_get_controller_data(chip);
+	struct nand_chip *chip = mtd->priv;
+	struct mpc5121_nfc_prv *prv = chip->priv;
 
 	prv->column = (column >= 0) ? column : 0;
 	prv->spareonly = 0;
@@ -356,8 +357,8 @@ static void mpc5121_nfc_command(struct mtd_info *mtd, unsigned command,
 static void mpc5121_nfc_copy_spare(struct mtd_info *mtd, uint offset,
 				   u8 * buffer, uint size, int wr)
 {
-	struct nand_chip *nand = mtd_to_nand(mtd);
-	struct mpc5121_nfc_prv *prv = nand_get_controller_data(nand);
+	struct nand_chip *nand = mtd->priv;
+	struct mpc5121_nfc_prv *prv = nand->priv;
 	uint o, s, sbsize, blksize;
 
 	/*
@@ -409,8 +410,8 @@ static void mpc5121_nfc_copy_spare(struct mtd_info *mtd, uint offset,
 static void mpc5121_nfc_buf_copy(struct mtd_info *mtd, u_char * buf, int len,
 				 int wr)
 {
-	struct nand_chip *chip = mtd_to_nand(mtd);
-	struct mpc5121_nfc_prv *prv = nand_get_controller_data(chip);
+	struct nand_chip *chip = mtd->priv;
+	struct mpc5121_nfc_prv *prv = chip->priv;
 	uint c = prv->column;
 	uint l;
 
@@ -488,7 +489,7 @@ static u16 mpc5121_nfc_read_word(struct mtd_info *mtd)
 static int mpc5121_nfc_read_hw_config(struct mtd_info *mtd)
 {
 	immap_t *im = (immap_t *)CONFIG_SYS_IMMR;
-	struct nand_chip *chip = mtd_to_nand(mtd);
+	struct nand_chip *chip = mtd->priv;
 	uint rcw_pagesize = 0;
 	uint rcw_sparesize = 0;
 	uint rcw_width;
@@ -548,6 +549,7 @@ int board_nand_init(struct nand_chip *chip)
 	int resettime = 0;
 	int retval = 0;
 	int rev;
+	static int chip_nr = 0;
 
 	/*
 	 * Check SoC revision. This driver supports only NFC
@@ -566,8 +568,9 @@ int board_nand_init(struct nand_chip *chip)
 		return -ENOMEM;
 	}
 
-	mtd = &chip->mtd;
-	nand_set_controller_data(chip, prv);
+	mtd = &nand_info[chip_nr++];
+	mtd->priv = chip;
+	chip->priv = prv;
 
 	/* Read NFC configuration from Reset Config Word */
 	retval = mpc5121_nfc_read_hw_config(mtd);

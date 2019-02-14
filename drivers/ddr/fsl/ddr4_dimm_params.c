@@ -135,8 +135,7 @@ unsigned int ddr_compute_dimm_parameters(const unsigned int ctrl_num,
 
 	if (spd->mem_type) {
 		if (spd->mem_type != SPD_MEMTYPE_DDR4) {
-			printf("Ctrl %u DIMM %u: is not a DDR4 SPD.\n",
-			       ctrl_num, dimm_number);
+			printf("DIMM %u: is not a DDR4 SPD.\n", dimm_number);
 			return 1;
 		}
 	} else {

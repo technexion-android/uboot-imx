@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2015 by Vladimir Zapolskiy <vz@mleia.com>
+ * Copyright (C) 2011 by Vladimir Zapolskiy <vz@mleia.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -20,23 +20,12 @@ void reset_cpu(ulong addr)
 	/* Enable watchdog clock */
 	setbits_le32(&clk->timclk_ctrl, CLK_TIMCLK_WATCHDOG);
 
-	/* To be compatible with the original U-Boot code:
-	 * addr: - 0: perform hard reset.
-	 *       - !=0: perform a soft reset; i.e. "RESOUT_N" not asserted). */
-	if (addr == 0) {
-		/* Reset pulse length is 13005 peripheral clock frames */
-		writel(13000, &wdt->pulse);
+	/* Reset pulse length is 13005 peripheral clock frames */
+	writel(13000, &wdt->pulse);
 
-		/* Force WDOG_RESET2 and RESOUT_N signal active */
-		writel(WDTIM_MCTRL_RESFRC2 | WDTIM_MCTRL_RESFRC1
-		       | WDTIM_MCTRL_M_RES2, &wdt->mctrl);
-	} else {
-		/* Force match output active */
-		writel(0x01, &wdt->emr);
-
-		/* Internal reset on match output (no pulse on "RESOUT_N") */
-		writel(WDTIM_MCTRL_M_RES1, &wdt->mctrl);
-	}
+	/* Force WDOG_RESET2 and RESOUT_N signal active */
+	writel(WDTIM_MCTRL_RESFRC2 | WDTIM_MCTRL_RESFRC1 | WDTIM_MCTRL_M_RES2,
+	       &wdt->mctrl);
 
 	while (1)
 		/* NOP */;
@@ -46,7 +35,7 @@ void reset_cpu(ulong addr)
 int arch_cpu_init(void)
 {
 	/*
-	 * It might be necessary to flush data cache, if U-Boot is loaded
+	 * It might be necessary to flush data cache, if U-boot is loaded
 	 * from kickstart bootloader, e.g. from S1L loader
 	 */
 	flush_dcache_all();

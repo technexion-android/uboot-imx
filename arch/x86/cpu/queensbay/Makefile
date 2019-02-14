@@ -4,5 +4,6 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
-obj-y += fsp_configs.o irq.o
+obj-y += fsp_configs.o
 obj-y += tnc.o topcliff.o
+obj-$(CONFIG_PCI) += tnc_pci.o

@@ -15,6 +15,7 @@
 #include <asm/immap_85xx.h>
 #include <asm/fsl_law.h>
 #include <asm/fsl_serdes.h>
+#include <asm/fsl_portals.h>
 #include <asm/fsl_liodn.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -55,6 +56,11 @@ int board_early_init_r(void)
 		MAS3_SW|MAS3_SR, MAS2_I|MAS2_G,
 		0, flash_esel, BOOKE_PAGESZ_256M, 1);
 
+	set_liodns();
+#ifdef CONFIG_SYS_DPAA_QBMAN
+	setup_portals();
+#endif
+
 	return 0;
 }
 
@@ -76,7 +82,7 @@ int ft_board_setup(void *blob, bd_t *bd)
 	fdt_fixup_memory(blob, (u64)base, (u64)size);
 
 	fdt_fixup_liodn(blob);
-	fsl_fdt_fixup_dr_usb(blob, bd);
+	fdt_fixup_dr_usb(blob, bd);
 
 	return 0;
 }

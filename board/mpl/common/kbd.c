@@ -8,7 +8,6 @@
  * linux/drivers/char/pc_keyb.c
  */
 #include <common.h>
-#include <console.h>
 #include <asm/processor.h>
 #include <stdio_dev.h>
 #include "isa.h"
@@ -204,7 +203,7 @@ int drv_isa_kbd_init (void)
 		return -1;
 	memset (&kbddev, 0, sizeof(kbddev));
 	strcpy(kbddev.name, DEVNAME);
-	kbddev.flags =  DEV_FLAGS_INPUT;
+	kbddev.flags =  DEV_FLAGS_INPUT | DEV_FLAGS_SYSTEM;
 	kbddev.getc = kbd_getc ;
 	kbddev.tstc = kbd_testc ;
 

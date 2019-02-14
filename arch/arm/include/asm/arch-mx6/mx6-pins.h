@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Boundary Devices Inc.
+ * Copyright (C) 2015-2016 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -33,8 +34,6 @@ enum {
 	MX6_PAD_DECLARE(MX6_PAD_,name, pco, mc, mm, sio, si, pc),
 #include "mx6dl_pins.h"
 };
-#elif defined(CONFIG_MX6SLL)
-#include "mx6sll_pins.h"
 #elif defined(CONFIG_MX6SL)
 #include "mx6sl_pins.h"
 #elif defined(CONFIG_MX6SX)

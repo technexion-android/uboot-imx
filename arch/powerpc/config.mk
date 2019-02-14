@@ -15,8 +15,7 @@ LDFLAGS_FINAL += --bss-plt
 PLATFORM_RELFLAGS += -fpic -mrelocatable -ffunction-sections \
 -fdata-sections -mcall-linux
 
-PF_CPPFLAGS_POWERPC	:= $(call cc-option,-fno-ira-hoist-pressure,)
-PLATFORM_CPPFLAGS += -D__powerpc__ -ffixed-r2 -m32 $(PF_CPPFLAGS_POWERPC)
+PLATFORM_CPPFLAGS += -D__powerpc__ -ffixed-r2 -m32
 PLATFORM_LDFLAGS  += -m32 -melf32ppclinux
 
 #
@@ -41,8 +40,7 @@ archprepare: checkgcc4
 # that U-Boot wants.
 # See http://lists.denx.de/pipermail/u-boot/2012-September/135156.html
 checkgcc4:
-	@if test "$(call cc-name)" = "gcc" -a \
-			$(call cc-version) -lt 0400; then \
+	@if test $(call cc-version) -lt 0400; then \
 		echo -n '*** Your GCC is too old, please upgrade to GCC 4.x or newer'; \
 		false; \
 	fi

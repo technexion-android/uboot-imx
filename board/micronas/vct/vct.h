@@ -80,14 +80,12 @@ void vct_pin_mux_initialize(void);
  */
 static inline void reg_write(u32 addr, u32 data)
 {
-	void *reg = (void *)(addr + REG_GLOBAL_START_ADDR);
-	__raw_writel(data, reg);
+	__raw_writel(data, addr + REG_GLOBAL_START_ADDR);
 }
 
 static inline u32 reg_read(u32 addr)
 {
-	const void *reg = (const void *)(addr + REG_GLOBAL_START_ADDR);
-	return __raw_readl(reg);
+	return __raw_readl(addr + REG_GLOBAL_START_ADDR);
 }
 
 #endif /* _VCT_H */

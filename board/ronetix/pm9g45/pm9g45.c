@@ -17,6 +17,7 @@
 #include <asm/gpio.h>
 #include <asm/arch/at91sam9_smc.h>
 #include <asm/arch/at91_common.h>
+#include <asm/arch/at91_pmc.h>
 #include <asm/arch/at91_rstc.h>
 #include <asm/arch/at91_matrix.h>
 #include <asm/arch/gpio.h>
@@ -38,6 +39,7 @@ static void pm9g45_nand_hw_init(void)
 	unsigned long csa;
 	struct at91_smc *smc = (struct at91_smc *)ATMEL_BASE_SMC;
 	struct at91_matrix *matrix = (struct at91_matrix *)ATMEL_BASE_MATRIX;
+	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
 
 	/* Enable CS3 */
 	csa = readl(&matrix->ccr[6]) | AT91_MATRIX_CSA_EBI_CS3A;
@@ -61,7 +63,7 @@ static void pm9g45_nand_hw_init(void)
 		AT91_SMC_MODE_TDF_CYCLE(3),
 		&smc->cs[3].mode);
 
-	at91_periph_clk_enable(ATMEL_ID_PIOC);
+	writel(1 << ATMEL_ID_PIOC, &pmc->pcer);
 
 #ifdef CONFIG_SYS_NAND_READY_PIN
 	/* Configure RDY/BSY */
@@ -76,6 +78,8 @@ static void pm9g45_nand_hw_init(void)
 #ifdef CONFIG_MACB
 static void pm9g45_macb_hw_init(void)
 {
+	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
+
 	/*
 	 * PD2 enables the 50MHz oscillator for Ethernet PHY
 	 * 1 - enable
@@ -84,7 +88,8 @@ static void pm9g45_macb_hw_init(void)
 	at91_set_pio_output(AT91_PIO_PORTD, 2, 1);
 	at91_set_pio_value(AT91_PIO_PORTD, 2, 1); /* 1- enable, 0 - disable */
 
-	at91_periph_clk_enable(ATMEL_ID_EMAC);
+	/* Enable clock */
+	writel(1 << ATMEL_ID_EMAC, &pmc->pcer);
 
 	/*
 	 * Disable pull-up on:
@@ -109,10 +114,13 @@ static void pm9g45_macb_hw_init(void)
 
 int board_early_init_f(void)
 {
-	at91_periph_clk_enable(ATMEL_ID_PIOA);
-	at91_periph_clk_enable(ATMEL_ID_PIOB);
-	at91_periph_clk_enable(ATMEL_ID_PIOC);
-	at91_periph_clk_enable(ATMEL_ID_PIODE);
+	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
+
+	/* Enable clocks for all PIOs */
+	writel((1 << ATMEL_ID_PIOA) |
+		(1 << ATMEL_ID_PIOB) |
+		(1 << ATMEL_ID_PIOC) |
+		(1 << ATMEL_ID_PIODE), &pmc->pcer);
 
 	at91_seriald_hw_init();
 
@@ -158,7 +166,7 @@ void reset_phy(void)
 	 * Initialize ethernet HW addr prior to starting Linux,
 	 * needed for nfsroot
 	 */
-	eth_init();
+	eth_init(gd->bd);
 #endif
 }
 #endif

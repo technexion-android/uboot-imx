@@ -5,8 +5,7 @@
  * on behalf of DENX Software Engineering GmbH
  *
  * Based on code from LTIB:
- * Copyright (C) 2010-2016 Freescale Semiconductor, Inc. All Rights Reserved.
- * Copyright 2017 NXP
+ * Copyright (C) 2015 Freescale Semiconductor, Inc. All Rights Reserved.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -15,7 +14,7 @@
 
 #include <common.h>
 #include <malloc.h>
-#include <linux/errno.h>
+#include <asm/errno.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/imx-regs.h>
@@ -89,7 +88,7 @@ void mxs_dma_flush_desc(struct mxs_dma_desc *desc)
 	uint32_t addr;
 	uint32_t size;
 
-	addr = (uintptr_t)desc;
+	addr = (uint32_t)desc;
 	size = roundup(sizeof(struct mxs_dma_desc), MXS_DMA_ALIGNMENT);
 
 	flush_dcache_range(addr, addr + size);
@@ -216,8 +215,8 @@ static int mxs_dma_reset(int channel)
 #if defined(CONFIG_MX23)
 	uint32_t setreg = (uint32_t)(&apbh_regs->hw_apbh_ctrl0_set);
 	uint32_t offset = APBH_CTRL0_RESET_CHANNEL_OFFSET;
-#elif (defined(CONFIG_MX28) || defined(CONFIG_MX6) || defined(CONFIG_MX7) || defined(CONFIG_IMX8) || defined(CONFIG_IMX8M))
-	uint32_t setreg = (uintptr_t)(&apbh_regs->hw_apbh_channel_ctrl_set);
+#elif (defined(CONFIG_MX28) || defined(CONFIG_MX6) || defined(CONFIG_MX7))
+	uint32_t setreg = (uint32_t)(&apbh_regs->hw_apbh_channel_ctrl_set);
 	uint32_t offset = APBH_CHANNEL_CTRL_RESET_CHANNEL_OFFSET;
 #endif
 
@@ -225,7 +224,7 @@ static int mxs_dma_reset(int channel)
 	if (ret)
 		return ret;
 
-	writel(1 << (channel + offset), (uintptr_t)setreg);
+	writel(1 << (channel + offset), setreg);
 
 	return 0;
 }

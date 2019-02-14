@@ -135,27 +135,23 @@ struct ahci_sg {
 };
 
 struct ahci_ioports {
-	void __iomem	*cmd_addr;
-	void __iomem	*scr_addr;
-	void __iomem	*port_mmio;
+	u32	cmd_addr;
+	u32	scr_addr;
+	u32	port_mmio;
 	struct ahci_cmd_hdr	*cmd_slot;
 	struct ahci_sg		*cmd_tbl_sg;
-	ulong	cmd_tbl;
+	u32	cmd_tbl;
 	u32	rx_fis;
 };
 
 struct ahci_probe_ent {
-#if defined(CONFIG_DM_PCI) || defined(CONFIG_DM_SCSI)
-	struct udevice *dev;
-#else
 	pci_dev_t	dev;
-#endif
 	struct ahci_ioports	port[AHCI_MAX_PORTS];
 	u32	n_ports;
 	u32	hard_port_no;
 	u32	host_flags;
 	u32	host_set_flags;
-	void __iomem *mmio_base;
+	u32	mmio_base;
 	u32     pio_mask;
 	u32	udma_mask;
 	u32	flags;
@@ -164,7 +160,7 @@ struct ahci_probe_ent {
 	u32	link_port_map; /*linkup port map*/
 };
 
-int ahci_init(void __iomem *base);
-int ahci_reset(void __iomem *base);
+int ahci_init(u32 base);
+int ahci_reset(u32 base);
 
 #endif

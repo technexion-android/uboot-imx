@@ -1,5 +1,5 @@
 #
-# U-Boot - Makefile
+# U-boot - Makefile
 #
 # Copyright (c) Switchfin Org. <dpn@switchfin.org>
 #

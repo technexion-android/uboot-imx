@@ -48,15 +48,6 @@ base_its = '''
                         load = <0x40000>;
                         entry = <0x8>;
                 };
-                kernel@2 {
-                        data = /incbin/("%(loadables1)s");
-                        type = "kernel";
-                        arch = "sandbox";
-                        os = "linux";
-                        compression = "none";
-                        %(loadables1_load)s
-                        entry = <0x0>;
-                };
                 fdt@1 {
                         description = "snow";
                         data = /incbin/("u-boot.dtb");
@@ -78,15 +69,6 @@ base_its = '''
                         %(ramdisk_load)s
                         compression = "none";
                 };
-                ramdisk@2 {
-                        description = "snow";
-                        data = /incbin/("%(loadables2)s");
-                        type = "ramdisk";
-                        arch = "sandbox";
-                        os = "linux";
-                        %(loadables2_load)s
-                        compression = "none";
-                };
         };
         configurations {
                 default = "conf@1";
@@ -94,7 +76,6 @@ base_its = '''
                         kernel = "kernel@1";
                         fdt = "fdt@1";
                         %(ramdisk_config)s
-                        %(loadables_config)s
                 };
         };
 };
@@ -107,10 +88,6 @@ base_fdt = '''
 / {
         model = "Sandbox Verified Boot Test";
         compatible = "sandbox";
-
-	reset@0 {
-		compatible = "sandbox,reset";
-	};
 
 };
 '''
@@ -126,8 +103,6 @@ bootm loados
 sb save hostfs 0 %(kernel_addr)x %(kernel_out)s %(kernel_size)x
 sb save hostfs 0 %(fdt_addr)x %(fdt_out)s %(fdt_size)x
 sb save hostfs 0 %(ramdisk_addr)x %(ramdisk_out)s %(ramdisk_size)x
-sb save hostfs 0 %(loadables1_addr)x %(loadables1_out)s %(loadables1_size)x
-sb save hostfs 0 %(loadables2_addr)x %(loadables2_out)s %(loadables2_size)x
 reset
 '''
 
@@ -213,32 +188,30 @@ def make_fit(mkimage, params):
         print >>fd, base_fdt
     return fit
 
-def make_kernel(filename, text):
+def make_kernel():
     """Make a sample kernel with test data
 
-    Args:
-        filename: the name of the file you want to create
     Returns:
-        Full path and filename of the kernel it created
+        Filename of kernel created
     """
-    fname = make_fname(filename)
+    fname = make_fname('test-kernel.bin')
     data = ''
     for i in range(100):
-        data += 'this %s %d is unlikely to boot\n' % (text, i)
+        data += 'this kernel %d is unlikely to boot\n' % i
     with open(fname, 'w') as fd:
         print >>fd, data
     return fname
 
-def make_ramdisk(filename, text):
+def make_ramdisk():
     """Make a sample ramdisk with test data
 
     Returns:
         Filename of ramdisk created
     """
-    fname = make_fname(filename)
+    fname = make_fname('test-ramdisk.bin')
     data = ''
     for i in range(100):
-        data += '%s %d was seldom used in the middle ages\n' % (text, i)
+        data += 'ramdisk %d was seldom used in the middle ages\n' % i
     with open(fname, 'w') as fd:
         print >>fd, data
     return fname
@@ -325,15 +298,11 @@ def run_fit_test(mkimage, u_boot):
 
     # Set up invariant files
     control_dtb = make_dtb()
-    kernel = make_kernel('test-kernel.bin', 'kernel')
-    ramdisk = make_ramdisk('test-ramdisk.bin', 'ramdisk')
-    loadables1 = make_kernel('test-loadables1.bin', 'lenrek')
-    loadables2 = make_ramdisk('test-loadables2.bin', 'ksidmar')
+    kernel = make_kernel()
+    ramdisk = make_ramdisk()
     kernel_out = make_fname('kernel-out.bin')
     fdt_out = make_fname('fdt-out.dtb')
     ramdisk_out = make_fname('ramdisk-out.bin')
-    loadables1_out = make_fname('loadables1-out.bin')
-    loadables2_out = make_fname('loadables2-out.bin')
 
     # Set up basic parameters with default values
     params = {
@@ -355,20 +324,6 @@ def run_fit_test(mkimage, u_boot):
         'ramdisk_size' : filesize(ramdisk),
         'ramdisk_load' : '',
         'ramdisk_config' : '',
-
-        'loadables1' : loadables1,
-        'loadables1_out' : loadables1_out,
-        'loadables1_addr' : 0x100000,
-        'loadables1_size' : filesize(loadables1),
-        'loadables1_load' : '',
-
-        'loadables2' : loadables2,
-        'loadables2_out' : loadables2_out,
-        'loadables2_addr' : 0x140000,
-        'loadables2_size' : filesize(loadables2),
-        'loadables2_load' : '',
-
-        'loadables_config' : '',
     }
 
     # Make a basic FIT and a script to load it
@@ -422,19 +377,6 @@ def run_fit_test(mkimage, u_boot):
     debug_stdout(stdout)
     if read_file(ramdisk) != read_file(ramdisk_out):
         fail('Ramdisk not loaded', stdout)
-
-    # Configuration with some Loadables
-    set_test('Kernel + FDT + Ramdisk load + Loadables')
-    params['loadables_config'] = 'loadables = "kernel@2", "ramdisk@2";'
-    params['loadables1_load'] = 'load = <%#x>;' % params['loadables1_addr']
-    params['loadables2_load'] = 'load = <%#x>;' % params['loadables2_addr']
-    fit = make_fit(mkimage, params)
-    stdout = command.Output(u_boot, '-d', control_dtb, '-c', cmd)
-    debug_stdout(stdout)
-    if read_file(loadables1) != read_file(loadables1_out):
-        fail('Loadables1 (kernel) not loaded', stdout)
-    if read_file(loadables2) != read_file(loadables2_out):
-        fail('Loadables2 (ramdisk) not loaded', stdout)
 
 def run_tests():
     """Parse options, run the FIT tests and print the result"""

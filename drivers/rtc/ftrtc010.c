@@ -86,7 +86,7 @@ int rtc_get(struct rtc_time *tmp)
 	now = ftrtc010_time() + readl(&rtc->record);
 #endif
 
-	rtc_to_tm(now, tmp);
+	to_tm(now, tmp);
 
 	return 0;
 }
@@ -104,7 +104,8 @@ int rtc_set(struct rtc_time *tmp)
 	      tmp->tm_year, tmp->tm_mon, tmp->tm_mday, tmp->tm_wday,
 	      tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
 
-	new = rtc_mktime(tmp);
+	new = mktime(tmp->tm_year, tmp->tm_mon, tmp->tm_mday, tmp->tm_hour,
+		     tmp->tm_min, tmp->tm_sec);
 
 	now = ftrtc010_time();
 

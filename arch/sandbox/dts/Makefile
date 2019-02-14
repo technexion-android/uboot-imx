@@ -1,9 +1,4 @@
-#
-# SPDX-License-Identifier:	GPL-2.0+
-#
-
 dtb-$(CONFIG_SANDBOX) += sandbox.dtb
-dtb-$(CONFIG_UT_DM) += test.dtb
 
 targets += $(dtb-y)
 

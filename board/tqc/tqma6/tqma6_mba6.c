@@ -14,7 +14,7 @@
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/sys_proto.h>
-#include <linux/errno.h>
+#include <asm/errno.h>
 #include <asm/gpio.h>
 #include <asm/imx-common/mxc_i2c.h>
 
@@ -309,26 +309,24 @@ int board_eth_init(bd_t *bis)
 
 	bus = fec_get_miibus(base, -1);
 	if (!bus)
-		return -EINVAL;
+		return 0;
 	/* scan phy */
 	phydev = phy_find_by_mask(bus, (0xf << CONFIG_FEC_MXC_PHYADDR),
 					PHY_INTERFACE_MODE_RGMII);
 
 	if (!phydev) {
-		ret = -EINVAL;
-		goto free_bus;
+		free(bus);
+		puts("No phy found\n");
+		return 0;
 	}
 	ret  = fec_probe(bis, -1, base, bus, phydev);
-	if (ret)
-		goto free_phydev;
+	if (ret) {
+		puts("FEC MXC: probe failed\n");
+		free(phydev);
+		free(bus);
+	}
 
 	return 0;
-
-free_phydev:
-	free(phydev);
-free_bus:
-	free(bus);
-	return ret;
 }
 
 int tqma6_bb_board_early_init_f(void)

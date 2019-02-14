@@ -8,6 +8,7 @@
 #include <common.h>
 #include <asm/arch/sama5d3.h>
 #include <asm/arch/at91_common.h>
+#include <asm/arch/at91_pmc.h>
 #include <asm/arch/clk.h>
 #include <asm/arch/gpio.h>
 #include <asm/io.h>
@@ -207,8 +208,10 @@ void at91_lcd_hw_init(void)
 #ifdef CONFIG_USB_GADGET_ATMEL_USBA
 void at91_udp_hw_init(void)
 {
+	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
+
 	/* Enable UPLL clock */
-	at91_upll_clk_enable();
+	writel(AT91_PMC_UPLLEN | AT91_PMC_BIASEN, &pmc->uckr);
 	/* Enable UDPHS clock */
 	at91_periph_clk_enable(ATMEL_ID_UDPHS);
 }

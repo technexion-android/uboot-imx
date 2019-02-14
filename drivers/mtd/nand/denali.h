@@ -5,9 +5,6 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#ifndef __DENALI_H__
-#define __DENALI_H__
-
 #include <linux/mtd/nand.h>
 
 #define DEVICE_RESET				0x0
@@ -166,8 +163,6 @@
 
 #define REVISION				0x370
 #define     REVISION__VALUE				0xffff
-#define MAKE_COMPARABLE_REVISION(x)		swab16((x) & REVISION__VALUE)
-#define REVISION_5_1				0x00000501
 
 #define ONFI_DEVICE_FEATURES			0x380
 #define     ONFI_DEVICE_FEATURES__VALUE			0x003f
@@ -386,6 +381,9 @@
 
 #define CUSTOM_CONF_PARAMS      0
 
+#ifndef _LLD_NAND_
+#define _LLD_NAND_
+
 #define INDEX_CTRL_REG    0x0
 #define INDEX_DATA_REG    0x10
 
@@ -436,6 +434,7 @@ struct nand_buf {
 #define DT		3
 
 struct denali_nand_info {
+	struct mtd_info *mtd;
 	struct nand_chip nand;
 	int flash_bank; /* currently selected chip */
 	int status;
@@ -464,4 +463,4 @@ struct denali_nand_info {
 	uint32_t max_banks;
 };
 
-#endif /* __DENALI_H__ */
+#endif /*_LLD_NAND_*/

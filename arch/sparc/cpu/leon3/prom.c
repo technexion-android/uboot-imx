@@ -15,25 +15,19 @@
 #include <asm/irq.h>
 #include <asm/leon.h>
 #include <ambapp.h>
-#include <grlib/apbuart.h>
-#include <grlib/irqmp.h>
-#include <grlib/gptimer.h>
 
 #include <config.h>
 /*
 #define PRINT_ROM_VEC
 */
 extern struct linux_romvec *kernel_arg_promvec;
-
-DECLARE_GLOBAL_DATA_PTR;
+extern ambapp_dev_apbuart *leon3_apbuart;
 
 #define PROM_PGT __attribute__ ((__section__ (".prom.pgt")))
 #define PROM_TEXT __attribute__ ((__section__ (".prom.text")))
 #define PROM_DATA __attribute__ ((__section__ (".prom.data")))
 
 ambapp_dev_gptimer *gptimer;
-
-void *__prom_start_reloc; /* relocated prom_start address */
 
 /* for __va */
 extern int __prom_start;
@@ -746,14 +740,14 @@ static int PROM_TEXT leon_nbputchar(int c)
 
 	/* Wait for last character to go. */
 	while (!(SPARC_BYPASS_READ(&uart->status)
-		 & APBUART_STATUS_THE));
+		 & LEON_REG_UART_STATUS_THE)) ;
 
 	/* Send data */
 	SPARC_BYPASS_WRITE(&uart->data, c);
 
 	/* Wait for data to be sent */
 	while (!(SPARC_BYPASS_READ(&uart->status)
-		 & APBUART_STATUS_TSE));
+		 & LEON_REG_UART_STATUS_TSE)) ;
 
 	return 0;
 }
@@ -915,7 +909,7 @@ void leon_prom_init(struct leon_prom_info *pspi)
 	pspi->avail.num_bytes = pspi->totphys.num_bytes;
 
 	/* Set the pointer to the Console UART in romvec */
-	pspi->reloc_funcs.leon3_apbuart = gd->arch.uart;
+	pspi->reloc_funcs.leon3_apbuart = leon3_apbuart;
 
 	{
 		int j = 1;

@@ -45,6 +45,4 @@
 	"callr	%0"					\
 	: : "r" (addr))
 
-void display_sysid(void);
-
 #endif /* __ASM_NIOS2_SYSTEM_H */

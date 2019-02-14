@@ -5,8 +5,4 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
-ifdef CONFIG_SPL_BUILD
-obj-y	:= spl.o common.o
-else
-obj-y	:= overo.o common.o
-endif
+obj-y	:= overo.o

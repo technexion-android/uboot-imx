@@ -421,7 +421,7 @@ int misc_init_r(void)
 	/* reuse atags from previous bootloader */
 	reuse_atags();
 
-	omap_die_id_display();
+	dieid_num_r();
 	print_cpuinfo();
 
 	/*

@@ -5,4 +5,3 @@
 #
 
 obj-y	+= galileo.o start.o
-obj-$(CONFIG_GENERATE_ACPI_TABLE) += dsdt.o

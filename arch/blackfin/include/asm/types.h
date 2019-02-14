@@ -1,5 +1,5 @@
 /*
- * U-Boot - types.h
+ * U-boot - types.h
  *
  * Copyright (c) 2005-2007 Analog Devices Inc.
  *

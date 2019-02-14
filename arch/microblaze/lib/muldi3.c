@@ -1,5 +1,5 @@
 /*
- * U-Boot - muldi3.c contains routines for mult and div
+ * U-boot - muldi3.c contains routines for mult and div
  *
  *
  * SPDX-License-Identifier:	GPL-2.0+

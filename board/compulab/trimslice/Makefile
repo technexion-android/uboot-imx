@@ -6,3 +6,5 @@
 #
 
 obj-y	:= trimslice.o
+
+include $(srctree)/board/nvidia/common/common.mk

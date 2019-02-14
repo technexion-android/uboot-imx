@@ -13,9 +13,4 @@
 #include <asm/bitops/non-atomic.h>
 #include <asm/bitops/ffs.h>
 
-#include <asm-generic/bitops/fls.h>
-#include <asm-generic/bitops/__fls.h>
-#include <asm-generic/bitops/fls64.h>
-#include <asm-generic/bitops/__ffs.h>
-
 #endif /* __ASM_NIOS2_BITOPS_H */

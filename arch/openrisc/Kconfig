@@ -6,7 +6,6 @@ config SYS_ARCH
 
 choice
 	prompt "Target select"
-	optional
 
 config TARGET_OPENRISC_GENERIC
 	bool "Support openrisc-generic"

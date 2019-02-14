@@ -49,13 +49,10 @@ static int lxt971_parse_status(struct phy_device *phydev)
 
 static int lxt971_startup(struct phy_device *phydev)
 {
-	int ret;
+	genphy_update_link(phydev);
+	lxt971_parse_status(phydev);
 
-	ret = genphy_update_link(phydev);
-	if (ret)
-		return ret;
-
-	return lxt971_parse_status(phydev);
+	return 0;
 }
 
 static struct phy_driver LXT971_driver = {

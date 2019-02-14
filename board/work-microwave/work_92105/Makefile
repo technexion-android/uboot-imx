@@ -5,8 +5,6 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
-ifdef CONFIG_SPL_BUILD
-obj-y	+= work_92105_spl.o
-else
-obj-y	+= work_92105.o work_92105_display.o
-endif
+obj-y	:= work_92105.o work_92105_display.o
+
+obj-$(CONFIG_SPL_BUILD) += work_92105_spl.o

@@ -1,5 +1,5 @@
 /*
- * U-Boot - main board file
+ * U-boot - main board file
  *
  * Copyright (c) 2008-2011 Analog Devices Inc.
  *
@@ -33,7 +33,7 @@ int board_early_init_f(void)
 	return 0;
 }
 
-#ifdef CONFIG_ETH_DESIGNWARE
+#ifdef CONFIG_DESIGNWARE_ETH
 int board_eth_init(bd_t *bis)
 {
 	int ret = 0;

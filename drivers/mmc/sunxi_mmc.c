@@ -9,7 +9,6 @@
  */
 
 #include <common.h>
-#include <errno.h>
 #include <malloc.h>
 #include <mmc.h>
 #include <asm/io.h>
@@ -38,7 +37,7 @@ static int sunxi_mmc_getcd_gpio(int sdc_no)
 	case 2: return sunxi_name_to_gpio(CONFIG_MMC2_CD_PIN);
 	case 3: return sunxi_name_to_gpio(CONFIG_MMC3_CD_PIN);
 	}
-	return -EINVAL;
+	return -1;
 }
 
 static int mmc_resource_init(int sdc_no)
@@ -73,12 +72,10 @@ static int mmc_resource_init(int sdc_no)
 	mmchost->mmc_no = sdc_no;
 
 	cd_pin = sunxi_mmc_getcd_gpio(sdc_no);
-	if (cd_pin >= 0) {
+	if (cd_pin != -1) {
 		ret = gpio_request(cd_pin, "mmc_cd");
-		if (!ret) {
-			sunxi_gpio_set_pull(cd_pin, SUNXI_GPIO_PULL_UP);
+		if (!ret)
 			ret = gpio_direction_input(cd_pin);
-		}
 	}
 
 	return ret;
@@ -120,27 +117,17 @@ static int mmc_set_mod_clk(struct sunxi_mmc_host *mmchost, unsigned int hz)
 	/* determine delays */
 	if (hz <= 400000) {
 		oclk_dly = 0;
-		sclk_dly = 0;
+		sclk_dly = 7;
 	} else if (hz <= 25000000) {
 		oclk_dly = 0;
 		sclk_dly = 5;
-#ifdef CONFIG_MACH_SUN9I
 	} else if (hz <= 50000000) {
-		oclk_dly = 5;
-		sclk_dly = 4;
+		oclk_dly = 3;
+		sclk_dly = 5;
 	} else {
 		/* hz > 50000000 */
 		oclk_dly = 2;
 		sclk_dly = 4;
-#else
-	} else if (hz <= 50000000) {
-		oclk_dly = 3;
-		sclk_dly = 4;
-	} else {
-		/* hz > 50000000 */
-		oclk_dly = 1;
-		sclk_dly = 4;
-#endif
 	}
 
 	writel(CCM_MMC_CTRL_ENABLE | pll | CCM_MMC_CTRL_SCLK_DLY(sclk_dly) |
@@ -164,7 +151,8 @@ static int mmc_clk_io_on(int sdc_no)
 	/* config ahb clock */
 	setbits_le32(&ccm->ahb_gate0, 1 << AHB_GATE_OFFSET_MMC(sdc_no));
 
-#ifdef CONFIG_SUNXI_GEN_SUN6I
+#if defined(CONFIG_MACH_SUN6I) || defined(CONFIG_MACH_SUN8I) || \
+    defined(CONFIG_MACH_SUN9I)
 	/* unassert reset */
 	setbits_le32(&ccm->ahb_reset0_cfg, 1 << AHB_RESET_OFFSET_MMC(sdc_no));
 #endif
@@ -227,7 +215,7 @@ static int mmc_config_clock(struct mmc *mmc)
 	return 0;
 }
 
-static int sunxi_mmc_set_ios(struct mmc *mmc)
+static void sunxi_mmc_set_ios(struct mmc *mmc)
 {
 	struct sunxi_mmc_host *mmchost = mmc->priv;
 
@@ -237,7 +225,7 @@ static int sunxi_mmc_set_ios(struct mmc *mmc)
 	/* Change clock first */
 	if (mmc->clock && mmc_config_clock(mmc) != 0) {
 		mmchost->fatal_err = 1;
-		return -EINVAL;
+		return;
 	}
 
 	/* Change bus width */
@@ -247,8 +235,6 @@ static int sunxi_mmc_set_ios(struct mmc *mmc)
 		writel(0x1, &mmchost->reg->width);
 	else
 		writel(0x0, &mmchost->reg->width);
-
-	return 0;
 }
 
 static int sunxi_mmc_core_init(struct mmc *mmc)
@@ -269,20 +255,18 @@ static int mmc_trans_data_by_cpu(struct mmc *mmc, struct mmc_data *data)
 	const uint32_t status_bit = reading ? SUNXI_MMC_STATUS_FIFO_EMPTY :
 					      SUNXI_MMC_STATUS_FIFO_FULL;
 	unsigned i;
-	unsigned *buff = (unsigned int *)(reading ? data->dest : data->src);
 	unsigned byte_cnt = data->blocksize * data->blocks;
-	unsigned timeout_usecs = (byte_cnt >> 8) * 1000;
-	if (timeout_usecs < 2000000)
-		timeout_usecs = 2000000;
+	unsigned timeout_msecs = 2000;
+	unsigned *buff = (unsigned int *)(reading ? data->dest : data->src);
 
 	/* Always read / write data through the CPU */
 	setbits_le32(&mmchost->reg->gctrl, SUNXI_MMC_GCTRL_ACCESS_BY_AHB);
 
 	for (i = 0; i < (byte_cnt >> 2); i++) {
 		while (readl(&mmchost->reg->status) & status_bit) {
-			if (!timeout_usecs--)
+			if (!timeout_msecs--)
 				return -1;
-			udelay(1);
+			udelay(1000);
 		}
 
 		if (reading)
@@ -306,7 +290,7 @@ static int mmc_rint_wait(struct mmc *mmc, unsigned int timeout_msecs,
 		    (status & SUNXI_MMC_RINT_INTERRUPT_ERROR_BIT)) {
 			debug("%s timeout %x\n", what,
 			      status & SUNXI_MMC_RINT_INTERRUPT_ERROR_BIT);
-			return -ETIMEDOUT;
+			return TIMEOUT;
 		}
 		udelay(1000);
 	} while (!(status & done_bit));
@@ -341,7 +325,7 @@ static int sunxi_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 		cmdval |= SUNXI_MMC_CMD_CHK_RESPONSE_CRC;
 
 	if (data) {
-		if ((u32)(long)data->dest & 0x3) {
+		if ((u32) data->dest & 0x3) {
 			error = -1;
 			goto out;
 		}
@@ -377,7 +361,7 @@ static int sunxi_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 		if (ret) {
 			error = readl(&mmchost->reg->rint) & \
 				SUNXI_MMC_RINT_INTERRUPT_ERROR_BIT;
-			error = -ETIMEDOUT;
+			error = TIMEOUT;
 			goto out;
 		}
 	}
@@ -404,7 +388,7 @@ static int sunxi_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 			status = readl(&mmchost->reg->status);
 			if (!timeout_msecs--) {
 				debug("busy timeout\n");
-				error = -ETIMEDOUT;
+				error = TIMEOUT;
 				goto out;
 			}
 			udelay(1000);
@@ -441,7 +425,7 @@ static int sunxi_mmc_getcd(struct mmc *mmc)
 	int cd_pin;
 
 	cd_pin = sunxi_mmc_getcd_gpio(mmchost->mmc_no);
-	if (cd_pin < 0)
+	if (cd_pin == -1)
 		return 1;
 
 	return !gpio_get_value(cd_pin);
@@ -465,11 +449,7 @@ struct mmc *sunxi_mmc_init(int sdc_no)
 
 	cfg->voltages = MMC_VDD_32_33 | MMC_VDD_33_34;
 	cfg->host_caps = MMC_MODE_4BIT;
-#if defined(CONFIG_MACH_SUN50I) || defined(CONFIG_MACH_SUN8I)
-	if (sdc_no == 2)
-		cfg->host_caps = MMC_MODE_8BIT;
-#endif
-	cfg->host_caps |= MMC_MODE_HS_52MHz | MMC_MODE_HS;
+	cfg->host_caps |= MMC_MODE_HS_52MHz | MMC_MODE_HS | MMC_MODE_HC;
 	cfg->b_max = CONFIG_SYS_MMC_MAX_BLK_COUNT;
 
 	cfg->f_min = 400000;

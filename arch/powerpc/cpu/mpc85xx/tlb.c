@@ -14,8 +14,6 @@
 #include <addr_map.h>
 #endif
 
-#include <linux/log2.h>
-
 DECLARE_GLOBAL_DATA_PTR;
 
 void invalidate_tlb(u8 tlb)

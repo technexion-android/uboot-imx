@@ -19,6 +19,7 @@
 #define DRIVER_NAME "mxc_nand"
 
 struct mxc_nand_host {
+	struct mtd_info			mtd;
 	struct nand_chip		*nand;
 
 	struct mxc_nand_regs __iomem	*regs;
@@ -350,8 +351,8 @@ static int mxc_nand_dev_ready(struct mtd_info *mtd)
 
 static void _mxc_nand_enable_hwecc(struct mtd_info *mtd, int on)
 {
-	struct nand_chip *nand_chip = mtd_to_nand(mtd);
-	struct mxc_nand_host *host = nand_get_controller_data(nand_chip);
+	struct nand_chip *nand_chip = mtd->priv;
+	struct mxc_nand_host *host = nand_chip->priv;
 #if defined(MXC_NFC_V1) || defined(MXC_NFC_V2_1)
 	uint16_t tmp = readnfc(&host->regs->config1);
 
@@ -385,7 +386,7 @@ static int mxc_nand_read_oob_syndrome(struct mtd_info *mtd,
 				      struct nand_chip *chip,
 				      int page)
 {
-	struct mxc_nand_host *host = nand_get_controller_data(chip);
+	struct mxc_nand_host *host = chip->priv;
 	uint8_t *buf = chip->oob_poi;
 	int length = mtd->oobsize;
 	int eccpitch = chip->ecc.bytes + chip->ecc.prepad + chip->ecc.postpad;
@@ -440,7 +441,7 @@ static int mxc_nand_read_page_raw_syndrome(struct mtd_info *mtd,
 					   int oob_required,
 					   int page)
 {
-	struct mxc_nand_host *host = nand_get_controller_data(chip);
+	struct mxc_nand_host *host = chip->priv;
 	int eccsize = chip->ecc.size;
 	int eccbytes = chip->ecc.bytes;
 	int eccpitch = eccbytes + chip->ecc.prepad + chip->ecc.postpad;
@@ -485,7 +486,7 @@ static int mxc_nand_read_page_syndrome(struct mtd_info *mtd,
 				       int oob_required,
 				       int page)
 {
-	struct mxc_nand_host *host = nand_get_controller_data(chip);
+	struct mxc_nand_host *host = chip->priv;
 	int n, eccsize = chip->ecc.size;
 	int eccbytes = chip->ecc.bytes;
 	int eccpitch = eccbytes + chip->ecc.prepad + chip->ecc.postpad;
@@ -549,7 +550,7 @@ static int mxc_nand_read_page_syndrome(struct mtd_info *mtd,
 static int mxc_nand_write_oob_syndrome(struct mtd_info *mtd,
 				       struct nand_chip *chip, int page)
 {
-	struct mxc_nand_host *host = nand_get_controller_data(chip);
+	struct mxc_nand_host *host = chip->priv;
 	int eccpitch = chip->ecc.bytes + chip->ecc.prepad + chip->ecc.postpad;
 	int length = mtd->oobsize;
 	int i, len, status, steps = chip->ecc.steps;
@@ -575,9 +576,9 @@ static int mxc_nand_write_oob_syndrome(struct mtd_info *mtd,
 static int mxc_nand_write_page_raw_syndrome(struct mtd_info *mtd,
 					     struct nand_chip *chip,
 					     const uint8_t *buf,
-					     int oob_required, int page)
+					     int oob_required)
 {
-	struct mxc_nand_host *host = nand_get_controller_data(chip);
+	struct mxc_nand_host *host = chip->priv;
 	int eccsize = chip->ecc.size;
 	int eccbytes = chip->ecc.bytes;
 	int eccpitch = eccbytes + chip->ecc.prepad + chip->ecc.postpad;
@@ -615,9 +616,9 @@ static int mxc_nand_write_page_raw_syndrome(struct mtd_info *mtd,
 static int mxc_nand_write_page_syndrome(struct mtd_info *mtd,
 					 struct nand_chip *chip,
 					 const uint8_t *buf,
-					 int oob_required, int page)
+					 int oob_required)
 {
-	struct mxc_nand_host *host = nand_get_controller_data(chip);
+	struct mxc_nand_host *host = chip->priv;
 	int i, n, eccsize = chip->ecc.size;
 	int eccbytes = chip->ecc.bytes;
 	int eccpitch = eccbytes + chip->ecc.prepad + chip->ecc.postpad;
@@ -660,8 +661,8 @@ static int mxc_nand_write_page_syndrome(struct mtd_info *mtd,
 static int mxc_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 				 u_char *read_ecc, u_char *calc_ecc)
 {
-	struct nand_chip *nand_chip = mtd_to_nand(mtd);
-	struct mxc_nand_host *host = nand_get_controller_data(nand_chip);
+	struct nand_chip *nand_chip = mtd->priv;
+	struct mxc_nand_host *host = nand_chip->priv;
 	uint32_t ecc_status = readl(&host->regs->ecc_status_result);
 	int subpages = mtd->writesize / nand_chip->subpagesize;
 	int pg2blk_shift = nand_chip->phys_erase_shift -
@@ -680,7 +681,7 @@ static int mxc_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 				       mtd->writesize / nand_chip->subpagesize
 					    - subpages);
 			}
-			return -EBADMSG;
+			return -1;
 		}
 		ecc_status >>= 4;
 		subpages--;
@@ -699,8 +700,8 @@ static int mxc_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 static int mxc_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 				 u_char *read_ecc, u_char *calc_ecc)
 {
-	struct nand_chip *nand_chip = mtd_to_nand(mtd);
-	struct mxc_nand_host *host = nand_get_controller_data(nand_chip);
+	struct nand_chip *nand_chip = mtd->priv;
+	struct mxc_nand_host *host = nand_chip->priv;
 
 	/*
 	 * 1-Bit errors are automatically corrected in HW.  No need for
@@ -712,7 +713,7 @@ static int mxc_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 	if (((ecc_status & 0x3) == 2) || ((ecc_status >> 2) == 2)) {
 		MTDDEBUG(MTD_DEBUG_LEVEL0,
 		      "MXC_NAND: HWECC uncorrectable 2-bit ECC error\n");
-		return -EBADMSG;
+		return -1;
 	}
 
 	return 0;
@@ -728,8 +729,8 @@ static int mxc_nand_calculate_ecc(struct mtd_info *mtd, const u_char *dat,
 
 static u_char mxc_nand_read_byte(struct mtd_info *mtd)
 {
-	struct nand_chip *nand_chip = mtd_to_nand(mtd);
-	struct mxc_nand_host *host = nand_get_controller_data(nand_chip);
+	struct nand_chip *nand_chip = mtd->priv;
+	struct mxc_nand_host *host = nand_chip->priv;
 	uint8_t ret = 0;
 	uint16_t col;
 	uint16_t __iomem *main_buf =
@@ -768,8 +769,8 @@ static u_char mxc_nand_read_byte(struct mtd_info *mtd)
 
 static uint16_t mxc_nand_read_word(struct mtd_info *mtd)
 {
-	struct nand_chip *nand_chip = mtd_to_nand(mtd);
-	struct mxc_nand_host *host = nand_get_controller_data(nand_chip);
+	struct nand_chip *nand_chip = mtd->priv;
+	struct mxc_nand_host *host = nand_chip->priv;
 	uint16_t col, ret;
 	uint16_t __iomem *p;
 
@@ -820,8 +821,8 @@ static uint16_t mxc_nand_read_word(struct mtd_info *mtd)
 static void mxc_nand_write_buf(struct mtd_info *mtd,
 				const u_char *buf, int len)
 {
-	struct nand_chip *nand_chip = mtd_to_nand(mtd);
-	struct mxc_nand_host *host = nand_get_controller_data(nand_chip);
+	struct nand_chip *nand_chip = mtd->priv;
+	struct mxc_nand_host *host = nand_chip->priv;
 	int n, col, i = 0;
 
 	MTDDEBUG(MTD_DEBUG_LEVEL3,
@@ -894,8 +895,8 @@ static void mxc_nand_write_buf(struct mtd_info *mtd,
  */
 static void mxc_nand_read_buf(struct mtd_info *mtd, u_char *buf, int len)
 {
-	struct nand_chip *nand_chip = mtd_to_nand(mtd);
-	struct mxc_nand_host *host = nand_get_controller_data(nand_chip);
+	struct nand_chip *nand_chip = mtd->priv;
+	struct mxc_nand_host *host = nand_chip->priv;
 	int n, col, i = 0;
 
 	MTDDEBUG(MTD_DEBUG_LEVEL3,
@@ -954,8 +955,8 @@ static void mxc_nand_read_buf(struct mtd_info *mtd, u_char *buf, int len)
  */
 static void mxc_nand_select_chip(struct mtd_info *mtd, int chip)
 {
-	struct nand_chip *nand_chip = mtd_to_nand(mtd);
-	struct mxc_nand_host *host = nand_get_controller_data(nand_chip);
+	struct nand_chip *nand_chip = mtd->priv;
+	struct mxc_nand_host *host = nand_chip->priv;
 
 	switch (chip) {
 	case -1:
@@ -981,8 +982,8 @@ static void mxc_nand_select_chip(struct mtd_info *mtd, int chip)
 void mxc_nand_command(struct mtd_info *mtd, unsigned command,
 				int column, int page_addr)
 {
-	struct nand_chip *nand_chip = mtd_to_nand(mtd);
-	struct mxc_nand_host *host = nand_get_controller_data(nand_chip);
+	struct nand_chip *nand_chip = mtd->priv;
+	struct mxc_nand_host *host = nand_chip->priv;
 
 	MTDDEBUG(MTD_DEBUG_LEVEL3,
 	      "mxc_nand_command (cmd = 0x%x, col = 0x%x, page = 0x%x)\n",
@@ -1163,13 +1164,14 @@ int board_nand_init(struct nand_chip *this)
 #endif
 
 	/* structures must be linked */
-	mtd = &this->mtd;
+	mtd = &host->mtd;
+	mtd->priv = this;
 	host->nand = this;
 
 	/* 5 us command delay time */
 	this->chip_delay = 5;
 
-	nand_set_controller_data(this, host);
+	this->priv = host;
 	this->dev_ready = mxc_nand_dev_ready;
 	this->cmdfunc = mxc_nand_command;
 	this->select_chip = mxc_nand_select_chip;

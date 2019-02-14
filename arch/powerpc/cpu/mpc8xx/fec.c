@@ -6,12 +6,10 @@
  */
 
 #include <common.h>
-#include <command.h>
-#include <commproc.h>
 #include <malloc.h>
+#include <commproc.h>
 #include <net.h>
-
-#include <phy.h>
+#include <command.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -49,9 +47,10 @@ DECLARE_GLOBAL_DATA_PTR;
 static int mii_discover_phy(struct eth_device *dev);
 #endif
 
-int fec8xx_miiphy_read(struct mii_dev *bus, int addr, int devad, int reg);
-int fec8xx_miiphy_write(struct mii_dev *bus, int addr, int devad, int reg,
-			u16 value);
+int fec8xx_miiphy_read(const char *devname, unsigned char addr,
+		unsigned char  reg, unsigned short *value);
+int fec8xx_miiphy_write(const char *devname, unsigned char  addr,
+		unsigned char  reg, unsigned short value);
 
 static struct ether_fcc_info_s
 {
@@ -138,7 +137,7 @@ int fec_initialize(bd_t *bis)
 	struct ether_fcc_info_s *efis;
 	int             i;
 
-	for (i = 0; i < ARRAY_SIZE(ether_fcc_info); i++) {
+	for (i = 0; i < sizeof(ether_fcc_info) / sizeof(ether_fcc_info[0]); i++) {
 
 		dev = malloc(sizeof(*dev));
 		if (dev == NULL)
@@ -149,7 +148,7 @@ int fec_initialize(bd_t *bis)
 		/* for FEC1 make sure that the name of the interface is the same
 		   as the old one for compatibility reasons */
 		if (i == 0) {
-			strcpy(dev->name, "FEC");
+			sprintf (dev->name, "FEC");
 		} else {
 			sprintf (dev->name, "FEC%d",
 				ether_fcc_info[i].ether_index + 1);
@@ -171,17 +170,8 @@ int fec_initialize(bd_t *bis)
 		eth_register(dev);
 
 #if defined(CONFIG_MII) || defined(CONFIG_CMD_MII)
-		int retval;
-		struct mii_dev *mdiodev = mdio_alloc();
-		if (!mdiodev)
-			return -ENOMEM;
-		strncpy(mdiodev->name, dev->name, MDIO_NAME_LEN);
-		mdiodev->read = fec8xx_miiphy_read;
-		mdiodev->write = fec8xx_miiphy_write;
-
-		retval = mdio_register(mdiodev);
-		if (retval < 0)
-			return retval;
+		miiphy_register(dev->name,
+			fec8xx_miiphy_read, fec8xx_miiphy_write);
 #endif
 	}
 	return 1;
@@ -257,21 +247,21 @@ static int fec_recv (struct eth_device *dev)
 				rtx->rxbd[rxIdx].cbd_sc);
 #endif
 		} else {
-			uchar *rx = net_rx_packets[rxIdx];
+			uchar *rx = NetRxPackets[rxIdx];
 
 			length -= 4;
 
 #if defined(CONFIG_CMD_CDP)
-			if ((rx[0] & 1) != 0 &&
-			    memcmp((uchar *)rx, net_bcast_ethaddr, 6) != 0 &&
-			    !is_cdp_packet((uchar *)rx))
+			if ((rx[0] & 1) != 0
+			    && memcmp ((uchar *) rx, NetBcastAddr, 6) != 0
+			    && !is_cdp_packet((uchar *)rx))
 				rx = NULL;
 #endif
 			/*
 			 * Pass the packet up to the protocol layers.
 			 */
 			if (rx != NULL)
-				net_process_received_packet(rx, length);
+				NetReceive (rx, length);
 		}
 
 		/* Give the buffer back to the FEC. */
@@ -570,8 +560,14 @@ static int fec_init (struct eth_device *dev, bd_t * bd)
 	rxIdx = 0;
 	txIdx = 0;
 
-	if (!rtx)
-		rtx = (RTXBD *)(immr->im_cpm.cp_dpmem + CPM_FEC_BASE);
+	if (!rtx) {
+#ifdef CONFIG_SYS_ALLOC_DPRAM
+		rtx = (RTXBD *) (immr->im_cpm.cp_dpmem +
+				 dpram_alloc_align (sizeof (RTXBD), 8));
+#else
+		rtx = (RTXBD *) (immr->im_cpm.cp_dpmem + CPM_FEC_BASE);
+#endif
+	}
 	/*
 	 * Setup Receiver Buffer Descriptors (13.14.24.18)
 	 * Settings:
@@ -580,7 +576,7 @@ static int fec_init (struct eth_device *dev, bd_t * bd)
 	for (i = 0; i < PKTBUFSRX; i++) {
 		rtx->rxbd[i].cbd_sc = BD_ENET_RX_EMPTY;
 		rtx->rxbd[i].cbd_datlen = 0;	/* Reset */
-		rtx->rxbd[i].cbd_bufaddr = (uint) net_rx_packets[i];
+		rtx->rxbd[i].cbd_bufaddr = (uint) NetRxPackets[i];
 	}
 	rtx->rxbd[PKTBUFSRX - 1].cbd_sc |= BD_ENET_RX_WRAP;
 
@@ -883,7 +879,7 @@ void mii_init (void)
 
 	/* Setup the pin configuration of the FEC(s)
 	*/
-	for (i = 0; i < ARRAY_SIZE(ether_fcc_info); i++)
+	for (i = 0; i < sizeof(ether_fcc_info) / sizeof(ether_fcc_info[0]); i++)
 		fec_pin_init(ether_fcc_info[i].ether_index);
 }
 
@@ -898,9 +894,9 @@ void mii_init (void)
  *	  Otherwise they hang in mii_send() !!! Sorry!
  *****************************************************************************/
 
-int fec8xx_miiphy_read(struct mii_dev *bus, int addr, int devad, int reg)
+int fec8xx_miiphy_read(const char *devname, unsigned char addr,
+		unsigned char  reg, unsigned short *value)
 {
-	unsigned short value = 0;
 	short rdreg;    /* register working value */
 
 #ifdef MII_DEBUG
@@ -908,15 +904,15 @@ int fec8xx_miiphy_read(struct mii_dev *bus, int addr, int devad, int reg)
 #endif
 	rdreg = mii_send(mk_mii_read(addr, reg));
 
-	value = rdreg;
+	*value = rdreg;
 #ifdef MII_DEBUG
-	printf ("0x%04x\n", value);
+	printf ("0x%04x\n", *value);
 #endif
-	return value;
+	return 0;
 }
 
-int fec8xx_miiphy_write(struct mii_dev *bus, int addr, int devad, int reg,
-			u16 value)
+int fec8xx_miiphy_write(const char *devname, unsigned char  addr,
+		unsigned char  reg, unsigned short value)
 {
 #ifdef MII_DEBUG
 	printf ("miiphy_write(0x%x) @ 0x%x = ", reg, addr);

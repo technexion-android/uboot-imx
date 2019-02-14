@@ -160,7 +160,7 @@ int misc_init_r(void)
 		puts("Unknown board revision\n");
 	}
 
-	omap_die_id_display();
+	dieid_num_r();
 
 	return 0;
 }

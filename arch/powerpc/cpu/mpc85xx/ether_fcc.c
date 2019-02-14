@@ -186,7 +186,7 @@ static int fec_recv(struct eth_device* dev)
 	}
 	else {
 	    /* Pass the packet up to the protocol layers. */
-	    net_process_received_packet(net_rx_packets[rxIdx], length - 4);
+	    NetReceive(NetRxPackets[rxIdx], length - 4);
 	}
 
 
@@ -263,7 +263,7 @@ static int fec_init(struct eth_device* dev, bd_t *bis)
     {
       rtx.rxbd[i].cbd_sc = BD_ENET_RX_EMPTY;
       rtx.rxbd[i].cbd_datlen = 0;
-      rtx.rxbd[i].cbd_bufaddr = (uint)net_rx_packets[i];
+      rtx.rxbd[i].cbd_bufaddr = (uint)NetRxPackets[i];
     }
     rtx.rxbd[PKTBUFSRX - 1].cbd_sc |= BD_ENET_RX_WRAP;
 
@@ -338,7 +338,7 @@ static int fec_init(struct eth_device* dev, bd_t *bis)
      * it unique by setting a few bits in the upper byte of the
      * non-static part of the address.
      */
-#define ea eth_get_ethaddr()
+#define ea eth_get_dev()->enetaddr
     pram_ptr->fen_paddrh = (ea[5] << 8) + ea[4];
     pram_ptr->fen_paddrm = (ea[3] << 8) + ea[2];
     pram_ptr->fen_paddrl = (ea[1] << 8) + ea[0];
@@ -424,7 +424,7 @@ int fec_initialize(bd_t *bis)
 	struct eth_device* dev;
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(ether_fcc_info); i++)
+	for (i = 0; i < sizeof(ether_fcc_info) / sizeof(ether_fcc_info[0]); i++)
 	{
 		dev = (struct eth_device*) malloc(sizeof *dev);
 		memset(dev, 0, sizeof *dev);
@@ -441,17 +441,8 @@ int fec_initialize(bd_t *bis)
 
 #if (defined(CONFIG_MII) || defined(CONFIG_CMD_MII)) \
 		&& defined(CONFIG_BITBANGMII)
-		int retval;
-		struct mii_dev *mdiodev = mdio_alloc();
-		if (!mdiodev)
-			return -ENOMEM;
-		strncpy(mdiodev->name, dev->name, MDIO_NAME_LEN);
-		mdiodev->read = bb_miiphy_read;
-		mdiodev->write = bb_miiphy_write;
-
-		retval = mdio_register(mdiodev);
-		if (retval < 0)
-			return retval;
+		miiphy_register(dev->name,
+				bb_miiphy_read,	bb_miiphy_write);
 #endif
 	}
 

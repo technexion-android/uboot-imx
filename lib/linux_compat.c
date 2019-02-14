@@ -16,13 +16,19 @@ unsigned long copy_from_user(void *dest, const void *src,
 
 void *kmalloc(size_t size, int flags)
 {
-	void *p;
+	return memalign(ARCH_DMA_MINALIGN, size);
+}
 
-	p = memalign(ARCH_DMA_MINALIGN, size);
-	if (flags & __GFP_ZERO)
-		memset(p, 0, size);
+void *kzalloc(size_t size, int flags)
+{
+	void *ptr = kmalloc(size, flags);
+	memset(ptr, 0, size);
+	return ptr;
+}
 
-	return p;
+void *vzalloc(unsigned long size)
+{
+	return kzalloc(size, 0);
 }
 
 struct kmem_cache *get_mem(int element_sz)

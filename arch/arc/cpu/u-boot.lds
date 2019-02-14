@@ -4,29 +4,38 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#include <config.h>
-
 OUTPUT_FORMAT("elf32-littlearc", "elf32-littlearc", "elf32-littlearc")
 OUTPUT_ARCH(arc)
 ENTRY(_start)
 SECTIONS
 {
-	. = CONFIG_SYS_TEXT_BASE;
-	__image_copy_start = .;
-	__text_start = .;
+	. = ALIGN(4);
 	.text :	{
+		*(.__text_start)
+		*(.__image_copy_start)
 		arch/arc/lib/start.o (.text*)
 		*(.text*)
 	}
-	__text_end = .;
+
+	. = ALIGN(4);
+	.text_end :
+	{
+		*(.__text_end)
+	}
 
 	. = ALIGN(1024);
-	__ivt_start = .;
+	.ivt_start : {
+		*(.__ivt_start)
+	}
+
 	.ivt :
 	{
 		*(.ivt)
 	}
-	__ivt_end = .;
+
+	.ivt_end : {
+		*(.__ivt_end)
+	}
 
 	. = ALIGN(4);
 	.rodata : {
@@ -44,20 +53,34 @@ SECTIONS
 	}
 
 	. = ALIGN(4);
-	__rel_dyn_start = .;
+	.rel_dyn_start : {
+		*(.__rel_dyn_start)
+	}
+
 	.rela.dyn : {
 		*(.rela.dyn)
 	}
-	__rel_dyn_end = .;
+
+	.rel_dyn_end : {
+		*(.__rel_dyn_end)
+	}
 
 	. = ALIGN(4);
-	__bss_start = .;
+	.bss_start : {
+		*(.__bss_start);
+	}
+
 	.bss : {
 		*(.bss*)
 	}
-	__bss_end = .;
+
+	.bss_end : {
+		*(.__bss_end);
+	}
 
 	. = ALIGN(4);
-	__image_copy_end = .;
-	__init_end = .;
+	.image_copy_end : {
+		*(.__image_copy_end)
+		*(.__init_end)
+	}
 }

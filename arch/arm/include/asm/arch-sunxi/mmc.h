@@ -43,7 +43,8 @@ struct sunxi_mmc {
 	u32 chda;		/* 0x90 */
 	u32 cbda;		/* 0x94 */
 	u32 res1[26];
-#ifdef CONFIG_SUNXI_GEN_SUN6I
+#if defined(CONFIG_MACH_SUN6I) || defined(CONFIG_MACH_SUN8I) || \
+    defined(CONFIG_MACH_SUN9I)
 	u32 res2[64];
 #endif
 	u32 fifo;		/* 0x100 / 0x200 FIFO access address */

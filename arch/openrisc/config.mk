@@ -6,7 +6,7 @@
 #
 
 ifeq ($(CROSS_COMPILE),)
-CROSS_COMPILE := or1k-elf-
+CROSS_COMPILE := or32-elf-
 endif
 
 # r10 used for global object pointer, already set in OR32 GCC but just to be

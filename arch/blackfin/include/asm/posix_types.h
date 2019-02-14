@@ -1,5 +1,5 @@
 /*
- * U-Boot - posix_types.h
+ * U-boot - posix_types.h
  *
  * Copyright (c) 2005-2007 Analog Devices Inc.
  *

@@ -1,5 +1,5 @@
 /*
- * U-Boot - string.c Contains library routines.
+ * U-boot - string.c Contains library routines.
  *
  * Copyright (c) 2005-2008 Analog Devices Inc.
  *

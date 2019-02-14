@@ -5,7 +5,6 @@
  */
 
 #include <common.h>
-#include <mapmem.h>
 #include <trace.h>
 #include <asm/io.h>
 #include <asm/sections.h>

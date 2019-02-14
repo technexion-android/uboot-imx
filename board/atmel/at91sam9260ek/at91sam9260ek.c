@@ -11,7 +11,7 @@
 #include <asm/arch/at91sam9260_matrix.h>
 #include <asm/arch/at91sam9_smc.h>
 #include <asm/arch/at91_common.h>
-#include <asm/arch/clk.h>
+#include <asm/arch/at91_pmc.h>
 #include <asm/arch/gpio.h>
 #include <atmel_mci.h>
 
@@ -70,9 +70,11 @@ static void at91sam9260ek_nand_hw_init(void)
 #ifdef CONFIG_MACB
 static void at91sam9260ek_macb_hw_init(void)
 {
+	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
 	struct at91_port *pioa = (struct at91_port *)ATMEL_BASE_PIOA;
 
-	at91_periph_clk_enable(ATMEL_ID_EMAC0);
+	/* Enable EMAC clock */
+	writel(1 << ATMEL_ID_EMAC0, &pmc->pcer);
 
 	/*
 	 * Disable pull-up on:
@@ -120,9 +122,12 @@ int board_mmc_init(bd_t *bd)
 
 int board_early_init_f(void)
 {
-	at91_periph_clk_enable(ATMEL_ID_PIOA);
-	at91_periph_clk_enable(ATMEL_ID_PIOB);
-	at91_periph_clk_enable(ATMEL_ID_PIOC);
+	struct at91_pmc *pmc = (struct at91_pmc *)ATMEL_BASE_PMC;
+
+	/* Enable clocks for all PIOs */
+	writel((1 << ATMEL_ID_PIOA) | (1 << ATMEL_ID_PIOB) |
+		(1 << ATMEL_ID_PIOC),
+		&pmc->pcer);
 
 	return 0;
 }

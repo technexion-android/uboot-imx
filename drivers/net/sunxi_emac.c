@@ -7,7 +7,6 @@
  */
 
 #include <common.h>
-#include <dm.h>
 #include <linux/err.h>
 #include <malloc.h>
 #include <miiphy.h>
@@ -154,16 +153,13 @@ struct sunxi_sramc_regs {
 #define EMAC_CRCERR		(0x1 << 4)
 #define EMAC_LENERR		(0x3 << 5)
 
-#define EMAC_RX_BUFSIZE		2000
+#define DMA_CPU_TRRESHOLD	2000
 
 struct emac_eth_dev {
-	struct emac_regs *regs;
-	struct mii_dev *bus;
-	struct phy_device *phydev;
+	u32 speed;
+	u32 duplex;
+	u32 phy_configured;
 	int link_printed;
-#ifdef CONFIG_DM_ETH
-	uchar rx_buf[EMAC_RX_BUFSIZE];
-#endif
 };
 
 struct emac_rxhdr {
@@ -199,10 +195,11 @@ static void emac_outblk_32bit(void *reg, void *data, int count)
 }
 
 /* Read a word from phyxcer */
-static int emac_mdio_read(struct mii_dev *bus, int addr, int devad, int reg)
+static int emac_phy_read(const char *devname, unsigned char addr,
+			  unsigned char reg, unsigned short *value)
 {
-	struct emac_eth_dev *priv = bus->priv;
-	struct emac_regs *regs = priv->regs;
+	struct eth_device *dev = eth_get_dev_by_name(devname);
+	struct emac_regs *regs = (struct emac_regs *)dev->iobase;
 
 	/* issue the phy address and reg */
 	writel(addr << 8 | reg, &regs->mac_madr);
@@ -216,16 +213,18 @@ static int emac_mdio_read(struct mii_dev *bus, int addr, int devad, int reg)
 	/* push down the phy io line */
 	writel(0x0, &regs->mac_mcmd);
 
-	/* And read data */
-	return readl(&regs->mac_mrdd);
+	/* and write data */
+	*value = readl(&regs->mac_mrdd);
+
+	return 0;
 }
 
 /* Write a word to phyxcer */
-static int emac_mdio_write(struct mii_dev *bus, int addr, int devad, int reg,
-			  u16 value)
+static int emac_phy_write(const char *devname, unsigned char addr,
+			   unsigned char reg, unsigned short value)
 {
-	struct emac_eth_dev *priv = bus->priv;
-	struct emac_regs *regs = priv->regs;
+	struct eth_device *dev = eth_get_dev_by_name(devname);
+	struct emac_regs *regs = (struct emac_regs *)dev->iobase;
 
 	/* issue the phy address and reg */
 	writel(addr << 8 | reg, &regs->mac_madr);
@@ -245,44 +244,12 @@ static int emac_mdio_write(struct mii_dev *bus, int addr, int devad, int reg,
 	return 0;
 }
 
-static int sunxi_emac_init_phy(struct emac_eth_dev *priv, void *dev)
+static void emac_setup(struct eth_device *dev)
 {
-	int ret, mask = 0xffffffff;
-
-#ifdef CONFIG_PHY_ADDR
-	mask = 1 << CONFIG_PHY_ADDR;
-#endif
-
-	priv->bus = mdio_alloc();
-	if (!priv->bus) {
-		printf("Failed to allocate MDIO bus\n");
-		return -ENOMEM;
-	}
-
-	priv->bus->read = emac_mdio_read;
-	priv->bus->write = emac_mdio_write;
-	priv->bus->priv = priv;
-	strcpy(priv->bus->name, "emac");
-
-	ret = mdio_register(priv->bus);
-	if (ret)
-		return ret;
-
-	priv->phydev = phy_find_by_mask(priv->bus, mask,
-					PHY_INTERFACE_MODE_MII);
-	if (!priv->phydev)
-		return -ENODEV;
-
-	phy_connect_dev(priv->phydev, dev);
-	phy_config(priv->phydev);
-
-	return 0;
-}
-
-static void emac_setup(struct emac_eth_dev *priv)
-{
-	struct emac_regs *regs = priv->regs;
+	struct emac_regs *regs = (struct emac_regs *)dev->iobase;
 	u32 reg_val;
+	u16 phy_val;
+	u32 duplex_flag;
 
 	/* Set up TX */
 	writel(EMAC_TX_SETUP, &regs->tx_mode);
@@ -295,8 +262,12 @@ static void emac_setup(struct emac_eth_dev *priv)
 	writel(EMAC_MAC_CTL0_SETUP, &regs->mac_ctl0);
 
 	/* Set MAC CTL1 */
+	emac_phy_read(dev->name, 1, 0, &phy_val);
+	debug("PHY SETUP, reg 0 value: %x\n", phy_val);
+	duplex_flag = !!(phy_val & (1 << 8));
+
 	reg_val = 0;
-	if (priv->phydev->duplex == DUPLEX_FULL)
+	if (duplex_flag)
 		reg_val = (0x1 << 0);
 	writel(EMAC_MAC_CTL1_SETUP | reg_val, &regs->mac_ctl1);
 
@@ -313,9 +284,9 @@ static void emac_setup(struct emac_eth_dev *priv)
 	writel(EMAC_MAC_MFL, &regs->mac_maxf);
 }
 
-static void emac_reset(struct emac_eth_dev *priv)
+static void emac_reset(struct eth_device *dev)
 {
-	struct emac_regs *regs = priv->regs;
+	struct emac_regs *regs = (struct emac_regs *)dev->iobase;
 
 	debug("resetting device\n");
 
@@ -327,10 +298,11 @@ static void emac_reset(struct emac_eth_dev *priv)
 	udelay(200);
 }
 
-static int _sunxi_emac_eth_init(struct emac_eth_dev *priv, u8 *enetaddr)
+static int sunxi_emac_eth_init(struct eth_device *dev, bd_t *bd)
 {
-	struct emac_regs *regs = priv->regs;
-	int ret;
+	struct emac_regs *regs = (struct emac_regs *)dev->iobase;
+	struct emac_eth_dev *priv = dev->priv;
+	u16 phy_reg;
 
 	/* Init EMAC */
 
@@ -348,44 +320,41 @@ static int _sunxi_emac_eth_init(struct emac_eth_dev *priv, u8 *enetaddr)
 	udelay(1);
 
 	/* Set up EMAC */
-	emac_setup(priv);
+	emac_setup(dev);
 
-	writel(enetaddr[0] << 16 | enetaddr[1] << 8 | enetaddr[2],
-	       &regs->mac_a1);
-	writel(enetaddr[3] << 16 | enetaddr[4] << 8 | enetaddr[5],
-	       &regs->mac_a0);
+	writel(dev->enetaddr[0] << 16 | dev->enetaddr[1] << 8 |
+	       dev->enetaddr[2], &regs->mac_a1);
+	writel(dev->enetaddr[3] << 16 | dev->enetaddr[4] << 8 |
+	       dev->enetaddr[5], &regs->mac_a0);
 
 	mdelay(1);
 
-	emac_reset(priv);
+	emac_reset(dev);
 
 	/* PHY POWER UP */
-	ret = phy_startup(priv->phydev);
-	if (ret) {
-		printf("Could not initialize PHY %s\n",
-		       priv->phydev->dev->name);
-		return ret;
-	}
+	emac_phy_read(dev->name, 1, 0, &phy_reg);
+	emac_phy_write(dev->name, 1, 0, phy_reg & (~(0x1 << 11)));
+	mdelay(1);
+
+	emac_phy_read(dev->name, 1, 0, &phy_reg);
+
+	priv->speed = miiphy_speed(dev->name, 0);
+	priv->duplex = miiphy_duplex(dev->name, 0);
 
 	/* Print link status only once */
 	if (!priv->link_printed) {
 		printf("ENET Speed is %d Mbps - %s duplex connection\n",
-		       priv->phydev->speed,
-		       priv->phydev->duplex ? "FULL" : "HALF");
+		       priv->speed, (priv->duplex == HALF) ? "HALF" : "FULL");
 		priv->link_printed = 1;
 	}
 
 	/* Set EMAC SPEED depend on PHY */
-	if (priv->phydev->speed == SPEED_100)
-		setbits_le32(&regs->mac_supp, 1 << 8);
-	else
-		clrbits_le32(&regs->mac_supp, 1 << 8);
+	clrsetbits_le32(&regs->mac_supp, 1 << 8,
+			((phy_reg & (0x1 << 13)) >> 13) << 8);
 
 	/* Set duplex depend on phy */
-	if (priv->phydev->duplex == DUPLEX_FULL)
-		setbits_le32(&regs->mac_ctl1, 1 << 0);
-	else
-		clrbits_le32(&regs->mac_ctl1, 1 << 0);
+	clrsetbits_le32(&regs->mac_ctl1, 1 << 0,
+			((phy_reg & (0x1 << 8)) >> 8) << 0);
 
 	/* Enable RX/TX */
 	setbits_le32(&regs->ctl, 0x7);
@@ -393,9 +362,14 @@ static int _sunxi_emac_eth_init(struct emac_eth_dev *priv, u8 *enetaddr)
 	return 0;
 }
 
-static int _sunxi_emac_eth_recv(struct emac_eth_dev *priv, void *packet)
+static void sunxi_emac_eth_halt(struct eth_device *dev)
 {
-	struct emac_regs *regs = priv->regs;
+	/* Nothing to do here */
+}
+
+static int sunxi_emac_eth_recv(struct eth_device *dev)
+{
+	struct emac_regs *regs = (struct emac_regs *)dev->iobase;
 	struct emac_rxhdr rxhdr;
 	u32 rxcount;
 	u32 reg_val;
@@ -413,7 +387,7 @@ static int _sunxi_emac_eth_recv(struct emac_eth_dev *priv, void *packet)
 		/* Had one stuck? */
 		rxcount = readl(&regs->rx_fbc);
 		if (!rxcount)
-			return -EAGAIN;
+			return 0;
 	}
 
 	reg_val = readl(&regs->rx_io_data);
@@ -429,7 +403,7 @@ static int _sunxi_emac_eth_recv(struct emac_eth_dev *priv, void *packet)
 		/* Enable RX */
 		setbits_le32(&regs->ctl, 0x1 << 2);
 
-		return -EAGAIN;
+		return 0;
 	}
 
 	/* A packet ready now
@@ -459,21 +433,24 @@ static int _sunxi_emac_eth_recv(struct emac_eth_dev *priv, void *packet)
 
 	/* Move data from EMAC */
 	if (good_packet) {
-		if (rx_len > EMAC_RX_BUFSIZE) {
+		if (rx_len > DMA_CPU_TRRESHOLD) {
 			printf("Received packet is too big (len=%d)\n", rx_len);
-			return -EMSGSIZE;
+		} else {
+			emac_inblk_32bit((void *)&regs->rx_io_data,
+					 NetRxPackets[0], rx_len);
+
+			/* Pass to upper layer */
+			NetReceive(NetRxPackets[0], rx_len);
+			return rx_len;
 		}
-		emac_inblk_32bit((void *)&regs->rx_io_data, packet, rx_len);
-		return rx_len;
 	}
 
-	return -EIO; /* Bad packet */
+	return 0;
 }
 
-static int _sunxi_emac_eth_send(struct emac_eth_dev *priv, void *packet,
-				int len)
+static int sunxi_emac_eth_send(struct eth_device *dev, void *packet, int len)
 {
-	struct emac_regs *regs = priv->regs;
+	struct emac_regs *regs = (struct emac_regs *)dev->iobase;
 
 	/* Select channel 0 */
 	writel(0, &regs->tx_ins);
@@ -490,98 +467,55 @@ static int _sunxi_emac_eth_send(struct emac_eth_dev *priv, void *packet,
 	return 0;
 }
 
-static void sunxi_emac_board_setup(struct emac_eth_dev *priv)
+int sunxi_emac_initialize(void)
 {
 	struct sunxi_ccm_reg *const ccm =
 		(struct sunxi_ccm_reg *)SUNXI_CCM_BASE;
 	struct sunxi_sramc_regs *sram =
 		(struct sunxi_sramc_regs *)SUNXI_SRAMC_BASE;
-	struct emac_regs *regs = priv->regs;
+	struct emac_regs *regs =
+		(struct emac_regs *)SUNXI_EMAC_BASE;
+	struct eth_device *dev;
+	struct emac_eth_dev *priv;
 	int pin;
+
+	dev = malloc(sizeof(*dev));
+	if (dev == NULL)
+		return -ENOMEM;
+
+	priv = (struct emac_eth_dev *)malloc(sizeof(struct emac_eth_dev));
+	if (!priv) {
+		free(dev);
+		return -ENOMEM;
+	}
+
+	memset(dev, 0, sizeof(*dev));
+	memset(priv, 0, sizeof(struct emac_eth_dev));
 
 	/* Map SRAM to EMAC */
 	setbits_le32(&sram->ctrl1, 0x5 << 2);
 
 	/* Configure pin mux settings for MII Ethernet */
 	for (pin = SUNXI_GPA(0); pin <= SUNXI_GPA(17); pin++)
-		sunxi_gpio_set_cfgpin(pin, SUNXI_GPA_EMAC);
+		sunxi_gpio_set_cfgpin(pin, SUNXI_GPA0_EMAC);
 
 	/* Set up clock gating */
 	setbits_le32(&ccm->ahb_gate0, 0x1 << AHB_GATE_OFFSET_EMAC);
 
 	/* Set MII clock */
 	clrsetbits_le32(&regs->mac_mcfg, 0xf << 2, 0xd << 2);
-}
 
-static int sunxi_emac_eth_start(struct udevice *dev)
-{
-	struct eth_pdata *pdata = dev_get_platdata(dev);
+	dev->iobase = (int)regs;
+	dev->priv = priv;
+	dev->init = sunxi_emac_eth_init;
+	dev->halt = sunxi_emac_eth_halt;
+	dev->send = sunxi_emac_eth_send;
+	dev->recv = sunxi_emac_eth_recv;
+	strcpy(dev->name, "emac");
 
-	return _sunxi_emac_eth_init(dev->priv, pdata->enetaddr);
-}
+	eth_register(dev);
 
-static int sunxi_emac_eth_send(struct udevice *dev, void *packet, int length)
-{
-	struct emac_eth_dev *priv = dev_get_priv(dev);
-
-	return _sunxi_emac_eth_send(priv, packet, length);
-}
-
-static int sunxi_emac_eth_recv(struct udevice *dev, int flags, uchar **packetp)
-{
-	struct emac_eth_dev *priv = dev_get_priv(dev);
-	int rx_len;
-
-	rx_len = _sunxi_emac_eth_recv(priv, priv->rx_buf);
-	*packetp = priv->rx_buf;
-
-	return rx_len;
-}
-
-static void sunxi_emac_eth_stop(struct udevice *dev)
-{
-	/* Nothing to do here */
-}
-
-static int sunxi_emac_eth_probe(struct udevice *dev)
-{
-	struct eth_pdata *pdata = dev_get_platdata(dev);
-	struct emac_eth_dev *priv = dev_get_priv(dev);
-
-	priv->regs = (struct emac_regs *)pdata->iobase;
-	sunxi_emac_board_setup(priv);
-
-	return sunxi_emac_init_phy(priv, dev);
-}
-
-static const struct eth_ops sunxi_emac_eth_ops = {
-	.start			= sunxi_emac_eth_start,
-	.send			= sunxi_emac_eth_send,
-	.recv			= sunxi_emac_eth_recv,
-	.stop			= sunxi_emac_eth_stop,
-};
-
-static int sunxi_emac_eth_ofdata_to_platdata(struct udevice *dev)
-{
-	struct eth_pdata *pdata = dev_get_platdata(dev);
-
-	pdata->iobase = dev_get_addr(dev);
+	miiphy_register(dev->name, emac_phy_read, emac_phy_write);
 
 	return 0;
 }
-
-static const struct udevice_id sunxi_emac_eth_ids[] = {
-	{ .compatible = "allwinner,sun4i-a10-emac" },
-	{ }
-};
-
-U_BOOT_DRIVER(eth_sunxi_emac) = {
-	.name	= "eth_sunxi_emac",
-	.id	= UCLASS_ETH,
-	.of_match = sunxi_emac_eth_ids,
-	.ofdata_to_platdata = sunxi_emac_eth_ofdata_to_platdata,
-	.probe	= sunxi_emac_eth_probe,
-	.ops	= &sunxi_emac_eth_ops,
-	.priv_auto_alloc_size = sizeof(struct emac_eth_dev),
-	.platdata_auto_alloc_size = sizeof(struct eth_pdata),
-};

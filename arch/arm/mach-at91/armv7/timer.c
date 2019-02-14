@@ -13,6 +13,7 @@
 #include <asm/io.h>
 #include <asm/arch/hardware.h>
 #include <asm/arch/at91_pit.h>
+#include <asm/arch/at91_pmc.h>
 #include <asm/arch/clk.h>
 #include <div64.h>
 
