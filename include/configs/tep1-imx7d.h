@@ -52,7 +52,7 @@
 #define CONFIG_MXC_UART
 #ifdef CONFIG_MXC_UART_BASE
 #undef CONFIG_MXC_UART_BASE
-#define CONFIG_MXC_UART_BASE		UART2_IPS_BASE_ADDR
+#define CONFIG_MXC_UART_BASE		UART3_IPS_BASE_ADDR
 #endif
 /* allow to overwrite serial and ethaddr */
 #define CONFIG_ENV_OVERWRITE
