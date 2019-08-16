@@ -280,12 +280,12 @@ void do_enable_parallel_lcd(struct lcd_panel_info_t const *dev)
 	gpio_direction_output(IMX_GPIO_NR(3, 4) , 1);
 }
 
-static struct lcd_panel_info_t const displays[] = {{
+static struct lcd_panel_info_t const displays[2] = {{
 	.lcdif_base_addr = ELCDIF1_IPS_BASE_ADDR,
 	.depth = 24,
 	.enable	= do_enable_parallel_lcd,
 	.mode	= {
-		.name		= "EJ050NA",
+		.name			= "MCIMX28LCD",
 		.xres           = 800,
 		.yres           = 480,
 		.pixclock       = 29850,
@@ -297,7 +297,26 @@ static struct lcd_panel_info_t const displays[] = {{
 		.vsync_len      = 10,
 		.sync           = 0,
 		.vmode          = FB_VMODE_NONINTERLACED
-} } };
+	} },
+	{
+	.lcdif_base_addr = ELCDIF1_IPS_BASE_ADDR,
+	.depth = 24,
+	.enable	= do_enable_parallel_lcd,
+	.mode	= {
+		.name		= "TVT0700C7-H",
+		.xres           = 1024,
+		.yres           = 600,
+		.pixclock       = 47500,
+		.left_margin    = 160,
+		.right_margin   = 160,
+		.upper_margin   = 23,
+		.lower_margin   = 12,
+		.hsync_len      = 1,
+		.vsync_len      = 1,
+		.sync           = 0,
+		.vmode          = FB_VMODE_NONINTERLACED
+	} }
+};
 
 int board_video_skip(void)
 {
@@ -310,8 +329,11 @@ int board_video_skip(void)
 		i = 0;
 	} else {
 		for (i = 0; i < ARRAY_SIZE(displays); i++) {
-			if (!strcmp(panel, displays[i].mode.name))
+			if (strcmp(panel, displays[i].mode.name) == 0) {
+				if(i == 1)
+					setenv("baseboard", "tep1-tvt");
 				break;
+			}
 		}
 	}
 	if (i < ARRAY_SIZE(displays)) {
