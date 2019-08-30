@@ -52,6 +52,7 @@
 	"splashpos=m,m\0" \
 	"som=autodetect\0" \
 	"baseboard=dwarf\0" \
+	"panel=hj070na\0" \
 	"default_baseboard=dwarf\0" \
 	"fdtfile=undefined\0" \
 	"fdt_high=0xffffffff\0" \
