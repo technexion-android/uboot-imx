@@ -34,6 +34,7 @@
 #include "imx6_spl.h"
 #endif
 
+#define CONFIG_OF_SYSTEM_SETUP
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN           (32 * SZ_1M)
 
