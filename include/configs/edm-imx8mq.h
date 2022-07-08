@@ -100,6 +100,7 @@
 
 #define CONFIG_PHYLIB
 #define CONFIG_PHY_ATHEROS
+#define CONFIG_PHY_REALTEK
 #endif
 
 /*
