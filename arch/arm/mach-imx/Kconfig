@@ -506,3 +506,8 @@ config PSCI_BOARD_REBOOT
 	  This is a optional command used to trigger system board reboot on imx8q and imx95.
 
 endif
+
+config ANDROID_EXT_DTBO
+	bool "Enable device tree overlay support"
+	depends on ANDROID_SUPPORT || ANDROID_AUTO_SUPPORT || ANDROID_THINGS_SUPPORT
+	default n
