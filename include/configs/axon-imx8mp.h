@@ -31,7 +31,7 @@
 #define CFG_MXC_UART_BASE		UART2_BASE_ADDR
 
 #ifdef CONFIG_ANDROID_SUPPORT
-#include "imx8mp_evk_android.h"
+#include "axon-imx8mp_android.h"
 #endif
 
 #endif
