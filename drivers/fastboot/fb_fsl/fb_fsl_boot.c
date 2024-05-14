@@ -95,6 +95,7 @@ typedef struct DEV_SETUP_T {
 //
 // Sync the order of _ext_dtbo with BoardConfig.mk
 //
+#if(defined(CONFIG_TARGET_AXON_IMX8MP))
 static dev_setup_t _dev_setup_axon_8mp[] = {
 	{ DEV_SETUP_VOUT, "lvds-vl10112880", NULL },
 	{ DEV_SETUP_VOUT, "lvds-vl15613676", NULL },
@@ -105,7 +106,9 @@ static dev_setup_t _dev_setup_axon_8mp[] = {
 	{ DEV_SETUP_VIN, "tevs", "NULL" },
 	{ DEV_SETUP_VIN, "vls", "NULL" },
 };
+#endif
 
+#if(defined(CONFIG_TARGET_EDM_G_IMX8MP))
 static dev_setup_t _dev_setup_edm_g_8mp[] = {
 	{ DEV_SETUP_VOUT, "lvds-vl10112880", NULL },
 	{ DEV_SETUP_VOUT, "lvds-vl15613676", NULL },
@@ -117,6 +120,7 @@ static dev_setup_t _dev_setup_edm_g_8mp[] = {
 	{ DEV_SETUP_VIN, "tevs", "NULL" },
 	{ DEV_SETUP_VIN, "vls", "NULL" },
 };
+#endif
 
 static dev_setup_t _dev_setup_edm_g_8mn[] = {
 	{ DEV_SETUP_VOUT, "lvds-vl10112880", NULL },
@@ -146,7 +150,6 @@ static dev_setup_t _dev_setup_edm_g_8mm[] = {
 	{ DEV_SETUP_VIN, "tevi-ov5640", NULL },
 	{ DEV_SETUP_VIN, "tevi-ap1302", "ap1302" },
 	{ DEV_SETUP_VIN, "hdmi2mipi-tc3587432", NULL },
-	{ DEV_SETUP_VIN, "vizionlink-tevi-ov5640", NULL },
 	{ DEV_SETUP_VIN, "vizionlink-tevi-ap1302", "ap1302" },
 	{ DEV_SETUP_VIN, "tevs", "NULL" },
 	{ DEV_SETUP_VIN, "vls", "NULL" },
