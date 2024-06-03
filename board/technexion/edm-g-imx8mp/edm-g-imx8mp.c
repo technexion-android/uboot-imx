@@ -462,13 +462,11 @@ int detect_baseboard(void)
 
 int board_late_init(void)
 {
-#ifndef CONFIG_AVB_SUPPORT
 	reset_dsi();
 	detect_baseboard();
 #ifdef CONFIG_TN_PHERIPHERAL_DETECT
 	detect_display_panel();
 	detect_camera();
-#endif
 #endif
 
 #ifdef CONFIG_ENV_IS_IN_MMC
