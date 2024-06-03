@@ -12,3 +12,7 @@ obj-$(CONFIG_FASTBOOT_LOCK) += fastboot_lock_unlock.o
 obj-$(CONFIG_BCB_SUPPORT) += command.o bcb.o
 obj-$(CONFIG_VIRTUAL_AB_SUPPORT) += fb_fsl_virtual_ab.o
 endif
+
+ifdef CONFIG_OF_LIBFDT_OVERLAY
+obj-$(CONFIG_ANDROID_EXT_DTBO) += fb_android_dtbo.o
+endif
