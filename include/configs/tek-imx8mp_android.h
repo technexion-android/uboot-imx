@@ -17,6 +17,8 @@
 	"splashimage=0x50000000\0"\
 	"fdt_high=0xffffffffffffffff\0"\
 	"initrd_high=0xffffffffffffffff\0"\
+	"bootcmd=boota ${fastboot_dev}\0" \
+	"fastboot_dev=mmc"__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"bootargs="\
 	"stack_depot_disable=on "\
 	"kasan.stacktrace=off "\
