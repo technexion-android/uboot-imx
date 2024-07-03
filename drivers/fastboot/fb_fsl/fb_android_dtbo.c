@@ -22,6 +22,23 @@ static dev_setup_t _dev_setup_tek_8mp[] = {
 };
 #endif
 
+#if(defined(CONFIG_TARGET_TEP_IMX8MP))
+static dev_setup_t _dev_setup_tep_8mp[] = {
+	{ DEV_SETUP_VOUT, "hdmi2mipi-tc358743", NULL },
+	{ DEV_SETUP_VOUT, "lvds-vl10112880", NULL },
+	{ DEV_SETUP_VOUT, "lvds-vl15010276", NULL },
+	{ DEV_SETUP_VOUT, "lvds-vl156192108", NULL },
+	{ DEV_SETUP_VOUT, "lvds-vl215192108", NULL },
+	{ DEV_SETUP_VOUT, "vizionpanel-vl10112880", NULL },
+	{ DEV_SETUP_VOUT, "vizionpanel-vl15010276", NULL },
+	{ DEV_SETUP_VOUT, "vizionpanel-vl15613676", NULL },
+	{ DEV_SETUP_VOUT, "vizionpanel-vl215192108", NULL },
+	{ DEV_SETUP_VIN,  "vizionlink-tevi-ov5640", NULL },
+	{ DEV_SETUP_VIN,  "vizionlink-tevi-ap1302", "ar0144" },
+	{ DEV_SETUP_VIN,  "vls", NULL },
+};
+#endif
+
 #if(defined(CONFIG_TARGET_AXON_IMX8MP))
 static dev_setup_t _dev_setup_axon_8mp[] = {
 	{ DEV_SETUP_VOUT, "lvds-vl10112880", NULL },
@@ -123,6 +140,9 @@ static  int _get_dev_setup(const char *dtbo_token, dev_setup_t *dev_setup, size_
 #if(defined(CONFIG_TARGET_TEK_IMX8MP))
 		__dev_setup = _dev_setup_tek_8mp;
 		__dev_setup_cnt = EXT_DTBO_SIZE(_dev_setup_tek_8mp);
+#elif(defined(CONFIG_TARGET_TEP_IMX8MP))
+		__dev_setup = _dev_setup_tep_8mp;
+		__dev_setup_cnt = EXT_DTBO_SIZE(_dev_setup_tep_8mp);
 #elif(defined(CONFIG_TARGET_AXON_IMX8MP))
 		__dev_setup = _dev_setup_axon_8mp;
 		__dev_setup_cnt = EXT_DTBO_SIZE(_dev_setup_axon_8mp);
