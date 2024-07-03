@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2017 NXP
+ * Copyright 2021 Technexion Ltd, Wig Cheng <wig.cheng@technexion.com>
+ * Copyright 2024 Technexion Ltd, Tifa Chen <tifa.chen@technexion.com>
+ */
+
+/dts-v1/;
+
+#include "imx8mp-tep.dts"
