@@ -32,7 +32,6 @@ static dev_setup_t _dev_setup_tep_8mp[] = {
 	{ DEV_SETUP_VOUT, "vizionpanel-vl10112880", NULL },
 	{ DEV_SETUP_VOUT, "vizionpanel-vl15010276", NULL },
 	{ DEV_SETUP_VOUT, "vizionpanel-vl15613676", NULL },
-	{ DEV_SETUP_VOUT, "vizionpanel-vl215192108", NULL },
 	{ DEV_SETUP_VIN,  "vizionlink-tevi-ov5640", NULL },
 	{ DEV_SETUP_VIN,  "vizionlink-tevi-ap1302", "ar0144" },
 	{ DEV_SETUP_VIN,  "vls", NULL },
