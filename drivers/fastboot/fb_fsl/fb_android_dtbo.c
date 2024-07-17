@@ -314,3 +314,13 @@ _exit_add_dt_overlay:
 	return(ret);
 }
 
+/* Run fw_envcmd for append envtool related information in cmdline */
+void _run_fw_envcmd(void)
+{
+	char *s;
+
+	s = env_get("fw_envcmd");
+	if (s) {
+		run_command(s, 0);
+	}
+}
