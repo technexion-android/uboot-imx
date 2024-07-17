@@ -206,8 +206,10 @@ int parse_setenv_args(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
+#ifndef CONFIG_ANDROID_SUPPORT
 	char *lockname = "/var/lock/" CMD_PRINTENV ".lock";
 	int lockfd = -1;
+#endif
 	int retval = EXIT_SUCCESS;
 	char *_cmdname;
 
@@ -238,6 +240,7 @@ int main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
+#ifndef CONFIG_ANDROID_SUPPORT
 	if (env_opts.lockname) {
 		lockname = malloc(strlen(env_opts.lockname) +
 				sizeof(CMD_PRINTENV) + 10);
@@ -261,6 +264,7 @@ int main(int argc, char *argv[])
 		close(lockfd);
 		return EXIT_FAILURE;
 	}
+#endif
 
 	if (do_printenv) {
 		if (fw_printenv(argc, argv, noheader, &env_opts) != 0)
@@ -275,10 +279,12 @@ int main(int argc, char *argv[])
 		}
 	}
 
+#ifndef CONFIG_ANDROID_SUPPORT
 	if (env_opts.lockname)
 		free(lockname);
 
 	flock(lockfd, LOCK_UN);
 	close(lockfd);
+#endif
 	return retval;
 }

@@ -21,8 +21,11 @@
  * See included "fw_env.config" sample file
  * for notes on configuration.
  */
+#ifndef CONFIG_ANDROID_SUPPORT
 #define CONFIG_FILE     "/etc/fw_env.config"
-
+#else
+#define CONFIG_FILE     "/data/vendor/fw_env/fw_env.config"
+#endif
 #ifndef CONFIG_FILE
 #define HAVE_REDUND /* For systems with 2 env sectors */
 #define DEVICE1_NAME      "/dev/mtd1"
