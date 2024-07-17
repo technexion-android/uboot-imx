@@ -29,5 +29,6 @@ typedef struct DEV_SETUP_T {
 } dev_setup_t;
 
 int _add_dt_overlay(struct dt_table_header *dt_img, const u32 fdt_addr);
+void _run_fw_envcmd(void);
 
 #endif //#ifndef FB_ANDROID_DTBO_H__
