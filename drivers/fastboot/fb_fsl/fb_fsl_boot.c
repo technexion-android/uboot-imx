@@ -1059,6 +1059,7 @@ int do_boota(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]) {
 		ramdisk_size = hdr->ramdisk_size;
 	}
 
+	_run_fw_envcmd();
 #if(defined(CONFIG_ANDROID_EXT_DTBO) && defined(CONFIG_OF_LIBFDT_OVERLAY))
 	_add_dt_overlay(dt_img, fdt_addr);
 #endif
