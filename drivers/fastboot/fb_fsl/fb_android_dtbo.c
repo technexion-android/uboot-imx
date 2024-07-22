@@ -61,16 +61,14 @@ static dev_setup_t _dev_setup_edm_g_8mp[] = {
 	{ DEV_SETUP_VIN, "tevi-ap1302", "ar0144" },
 	{ DEV_SETUP_VIN, "vizionlink-tevi-ov5640", NULL },
 	{ DEV_SETUP_VIN, "vizionlink-tevi-ap1302", "ar0144" },
+	{ DEV_SETUP_VIN, "tevs", NULL },
+	{ DEV_SETUP_VIN, "vls", NULL },
 };
 static dev_setup_t _dev_setup_edm_g_8mp_wizard[] = {
 	{ DEV_SETUP_VOUT, "vizionpanel-vl10112880", NULL },
 	{ DEV_SETUP_VOUT, "vizionpanel-vl15010276", NULL },
 	{ DEV_SETUP_VOUT, "vizionpanel-vl15613676", NULL },
 	{ DEV_SETUP_VOUT, "vizionpanel-vl215192108", NULL },
-};
-static dev_setup_t _dev_setup_edm_g_8mp_wb[] = {
-	{ DEV_SETUP_VIN, "tevs", NULL },
-	{ DEV_SETUP_VIN, "vls", NULL },
 };
 #endif
 
@@ -152,11 +150,6 @@ static  int _get_dev_setup(const char *dtbo_token, dev_setup_t *dev_setup, size_
 		{
 			__dev_setup_ext = _dev_setup_edm_g_8mp_wizard;
 			__dev_setup_ext_cnt = EXT_DTBO_SIZE(_dev_setup_edm_g_8mp_wizard);
-		}
-		else if (strcmp("wb", env_get("baseboard")) == 0)
-		{
-			__dev_setup_ext = _dev_setup_edm_g_8mp_wb;
-			__dev_setup_ext_cnt = EXT_DTBO_SIZE(_dev_setup_edm_g_8mp_wb);
 		}
 #endif
 	} else if(is_imx8mm()) {
