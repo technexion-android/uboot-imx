@@ -321,13 +321,16 @@ __weak int detect_display_panel(void)
 {
 	int i=0;
 
+	char *multi_diplay = env_get("multidisplay");
 	tn_debug("%s: Running %s\n", __FILE__, __func__);
 	for (i = 0; i < tn_display_count; i++) {
 		struct tn_display const *dev = &displays[i];
 		if (dev->detect && dev->detect(dev)) {
 			_add_dtoverlay(dev->ov_name);
 			tn_debug("Detect panel - %s !!!\r\n", dev->ov_name);
-			break;
+			if ((multi_diplay == NULL) || (strcmp(multi_diplay, "yes") != 0)) {
+				break;
+			}
 		}
 	}
 
