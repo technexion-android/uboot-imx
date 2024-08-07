@@ -21,6 +21,7 @@
 	"fastboot_dev=mmc"__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcblk=mmcblk"__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"fw_envcmd=echo Running fw_envcmd ...;setenv append_bootargs mmc_dev=${mmcblk} qspi_boot=${qspi_boot};saveenv;\0" \
+	"multidisplay=yes\0"\
 	"bootargs="\
 	"stack_depot_disable=on "\
 	"kasan.stacktrace=off "\
