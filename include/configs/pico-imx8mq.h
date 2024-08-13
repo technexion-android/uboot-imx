@@ -85,6 +85,7 @@
 	"emmc_dev=0\0"\
 	"sd_dev=1\0" \
 
+#ifndef CONFIG_ANDROID_SUPPORT
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	CONFIG_MFG_ENV_SETTINGS \
@@ -167,6 +168,7 @@
 				   "fi; " \
 			   "fi; " \
 		   "fi;"
+#endif //#ifndef CONFIG_ANDROID_SUPPORT
 
 #define CONFIG_SYS_INIT_RAM_ADDR        0x40000000
 #define CONFIG_SYS_INIT_RAM_SIZE        0x80000
@@ -202,8 +204,10 @@
 /* USB configs */
 #ifndef CONFIG_SPL_BUILD
 
+#ifndef CONFIG_ANDROID_SUPPORT
 #define CONFIG_CMD_USB_MASS_STORAGE
 #define CONFIG_USB_FUNCTION_MASS_STORAGE
+#endif
 
 #define CONFIG_CMD_READ
 
@@ -219,16 +223,18 @@
 #define CONFIG_USB_GADGET_VBUS_DRAW 2
 
 #ifdef CONFIG_DM_VIDEO
+#ifndef CONFIG_ANDROID_SUPPORT
 #define CONFIG_VIDEO_LOGO
 #define CONFIG_BMP_16BPP
 #define CONFIG_BMP_24BPP
 #define CONFIG_BMP_32BPP
 #define CONFIG_VIDEO_BMP_RLE8
+#endif
 #define CONFIG_VIDEO_BMP_LOGO
 #endif
 
 #ifdef CONFIG_ANDROID_SUPPORT
-#include "imx8mq_evk_android.h"
+#include "pico-imx8mq_android.h"
 #endif
 
 #endif
