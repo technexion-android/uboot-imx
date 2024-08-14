@@ -1198,7 +1198,9 @@ dtb-$(CONFIG_ARCH_IMX8M) += \
 	imx8mq-kontron-pitx-imx8m.dtb \
 	imx8mq-librem5-r4.dtb \
 	imx8mm-pico-pi_android.dtb \
-	imx8mm-pico-wizard_android.dtb
+	imx8mm-pico-wizard_android.dtb \
+	imx8mq-pico-pi_android.dtb \
+	imx8mq-pico-wizard_android.dtb
 
 dtb-$(CONFIG_ARCH_IMX9) += \
 	imx95-15x15-evk.dtb \
