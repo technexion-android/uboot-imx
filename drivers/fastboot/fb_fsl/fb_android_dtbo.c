@@ -81,16 +81,24 @@ static dev_setup_t _dev_setup_edm_g_8mn[] = {
 	{ DEV_SETUP_VIN, "tevi-ap1302", "ar0144" },
 };
 
+#if(defined(CONFIG_TARGET_PICO_IMX8MQ))
 static dev_setup_t _dev_setup_pico_8mq[] = {
 	{ DEV_SETUP_VOUT, "ili9881c", NULL },
-	{ DEV_SETUP_VOUT, "g101uan02", NULL },
+	{ DEV_SETUP_VIN, "tevi-ov5640", NULL },
+};
+
+static dev_setup_t _dev_setup_pico_8mq_pi[] = {
+	{ DEV_SETUP_VOUT, "dual", NULL },
+	{ DEV_SETUP_VIN, "tevs", NULL },
+};
+
+static dev_setup_t _dev_setup_pico_8mq_wizard[] = {
 	{ DEV_SETUP_VOUT, "mipi2hdmi-adv7535", NULL },
 	{ DEV_SETUP_VOUT, "sn65dsi84-vl10112880", NULL },
 	{ DEV_SETUP_VOUT, "sn65dsi84-vl15613676", NULL },
 	{ DEV_SETUP_VOUT, "sn65dsi84-vl215192108", NULL },
-	{ DEV_SETUP_NFC, "clix1nfc", NULL },
-	{ DEV_SETUP_NFC, "clix2nfc", NULL },
 };
+#endif
 
 #if(defined(CONFIG_TARGET_EDM_G_IMX8MM))
 static dev_setup_t _dev_setup_edm_g_8mm[] = {
@@ -181,8 +189,20 @@ static  int _get_dev_setup(const char *dtbo_token, dev_setup_t *dev_setup, size_
 		}
 #endif
 	} else if(is_imx8mq()) {
+#if(defined(CONFIG_TARGET_PICO_IMX8MQ))
 		__dev_setup = _dev_setup_pico_8mq;
 		__dev_setup_cnt = EXT_DTBO_SIZE(_dev_setup_pico_8mq);
+		if (strcmp("pi", env_get("baseboard")) == 0)
+		{
+			__dev_setup_ext = _dev_setup_pico_8mq_pi;
+			__dev_setup_ext_cnt = EXT_DTBO_SIZE(_dev_setup_pico_8mq_pi);
+		}
+		if (strcmp("wizard", env_get("baseboard")) == 0)
+		{
+			__dev_setup_ext = _dev_setup_pico_8mq_wizard;
+			__dev_setup_ext_cnt = EXT_DTBO_SIZE(_dev_setup_pico_8mq_wizard);
+		}
+#endif
 	} else if(is_imx8mn()) {
 		__dev_setup = _dev_setup_edm_g_8mn;
 		__dev_setup_cnt = EXT_DTBO_SIZE(_dev_setup_edm_g_8mn);
