@@ -17,6 +17,8 @@
 	"splashimage=0x50000000\0"		\
 	"fdt_high=0xffffffffffffffff\0"		\
 	"initrd_high=0xffffffffffffffff\0"	\
+	"fdtfile=undefined\0"\
+	"cameraautodetect=yes\0"\
 	"bootargs="\
 	"console=ttymxc0,115200 "\
 	"earlycon=ec_imx6q,0x30860000,115200 "\
