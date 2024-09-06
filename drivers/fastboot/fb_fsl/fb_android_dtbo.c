@@ -94,9 +94,6 @@ static dev_setup_t _dev_setup_pico_8mq_pi[] = {
 
 static dev_setup_t _dev_setup_pico_8mq_wizard[] = {
 	{ DEV_SETUP_VOUT, "mipi2hdmi-adv7535", NULL },
-	{ DEV_SETUP_VOUT, "sn65dsi84-vl10112880", NULL },
-	{ DEV_SETUP_VOUT, "sn65dsi84-vl15613676", NULL },
-	{ DEV_SETUP_VOUT, "sn65dsi84-vl215192108", NULL },
 };
 #endif
 
