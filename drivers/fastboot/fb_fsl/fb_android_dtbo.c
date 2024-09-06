@@ -89,7 +89,7 @@ static dev_setup_t _dev_setup_pico_8mq[] = {
 
 static dev_setup_t _dev_setup_pico_8mq_pi[] = {
 	{ DEV_SETUP_VOUT, "dual", NULL },
-	{ DEV_SETUP_VIN, "tevs", NULL },
+	{ DEV_SETUP_VIN, "tevs", "tevs" },
 };
 
 static dev_setup_t _dev_setup_pico_8mq_wizard[] = {
