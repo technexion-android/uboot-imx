@@ -106,9 +106,6 @@ static dev_setup_t _dev_setup_edm_g_8mm[] = {
 	{ DEV_SETUP_VIN, "tevi-ap1302", "ar0144" },
 	{ DEV_SETUP_VIN, "hdmi2mipi-tc358743", NULL },
 	{ DEV_SETUP_VIN, "vizionlink-tevi-ap1302", "ar0144" },
-};
-
-static dev_setup_t _dev_setup_edm_g_8mm_wb[] = {
 	{ DEV_SETUP_VIN, "tevs", NULL },
 	{ DEV_SETUP_VIN, "vls", NULL },
 };
@@ -166,11 +163,6 @@ static  int _get_dev_setup(const char *dtbo_token, dev_setup_t *dev_setup, size_
 #if(defined(CONFIG_TARGET_EDM_G_IMX8MM))
 		__dev_setup = _dev_setup_edm_g_8mm;
 		__dev_setup_cnt = EXT_DTBO_SIZE(_dev_setup_edm_g_8mm);
-		if (strcmp("wb", env_get("baseboard")) == 0)
-		{
-			__dev_setup_ext = _dev_setup_edm_g_8mm_wb;
-			__dev_setup_ext_cnt = EXT_DTBO_SIZE(_dev_setup_edm_g_8mm_wb);
-		}
 #elif(defined(CONFIG_TARGET_PICO_IMX8MM))
 		__dev_setup = _dev_setup_pico_8mm;
 		__dev_setup_cnt = EXT_DTBO_SIZE(_dev_setup_pico_8mm);
