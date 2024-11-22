@@ -30,7 +30,7 @@
 	"transparent_hugepage=never "\
 	"swiotlb=65536 "\
 	"pci=nomsi "\
-	"cma=800M@0x400M-0x1000M "\
+	"cma=480M@0x400M-0xb80M "\
 	"buildvariant=userdebug "\
 	"androidboot.console=ttymxc1 "\
 	"androidboot.hardware=nxp "\
