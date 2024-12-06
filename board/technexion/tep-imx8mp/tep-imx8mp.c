@@ -498,13 +498,13 @@ void add_default_camera_overlay(void)
 {
 #define ENV_DTOVERLAY           "dtoverlay"
 #define SIZE_DTOVERLAY          (256)
-	int cam_ov_list_number = 3;
 	int i;
 	char* ov_list;
 	char* default_cam_ov = "vls";
 	char* cam_ov_list[] = { "hdmi2mipi-tc358743", "vizionlink-tevi-ap1302", "vizionlink-tevi-ov5640", "vls" };
+	int cam_ov_list_number = sizeof(cam_ov_list) / sizeof(cam_ov_list[0]);
 
-	ov_list = env_get("ENV_DTOVERLAY");
+	ov_list = env_get(ENV_DTOVERLAY);
 	if (ov_list) {
 		for (i=0; i< cam_ov_list_number ; i++)
 		{
@@ -513,9 +513,9 @@ void add_default_camera_overlay(void)
 		}
 		/* No any camera overlay found, add default overlay to it. */
 		snprintf(ov_list, SIZE_DTOVERLAY, "%s %s", ov_list, default_cam_ov);
-		env_set("ENV_DTOVERLAY", ov_list);
+		env_set(ENV_DTOVERLAY, ov_list);
 	} else {
-		env_set("ENV_DTOVERLAY", default_cam_ov);
+		env_set(ENV_DTOVERLAY, default_cam_ov);
 	}
 }
 
