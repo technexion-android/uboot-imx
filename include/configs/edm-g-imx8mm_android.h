@@ -9,14 +9,16 @@
 
 #define FSL_FASTBOOT_FB_DEV "mmc"
 
-#undef CONFIG_EXTRA_ENV_SETTINGS
+#undef CFG_EXTRA_ENV_SETTINGS
 #undef CONFIG_BOOTCOMMAND
 
-#define CONFIG_EXTRA_ENV_SETTINGS	\
+#define CFG_EXTRA_ENV_SETTINGS		\
 	"splashpos=m,m\0"\
 	"splashimage=0x50000000\0"\
 	"fdt_high=0xffffffffffffffff\0"\
 	"initrd_high=0xffffffffffffffff\0"\
+	"emmc_dev=2\0"\
+	"sd_dev=1\0" \
 	"fdtfile=undefined\0"\
 	"cameraautodetect=yes\0"\
 	"bootargs="\
@@ -59,12 +61,7 @@
 #define ANDROID_MCU_FIRMWARE_HEADER_STACK 0x20020000
 #endif
 
-#if !defined(CONFIG_IMX_TRUSTY_OS) || !defined(CONFIG_DUAL_BOOTLOADER)
-#undef CONFIG_FSL_CAAM_KB
-#endif
-
-#ifdef CONFIG_DUAL_BOOTLOADER
-#define CONFIG_SYS_SPL_PTE_RAM_BASE    0x41580000
+#define CFG_SYS_SPL_PTE_RAM_BASE    0x41580000
 
 #ifdef CONFIG_IMX_TRUSTY_OS
 #define BOOTLOADER_RBIDX_OFFSET  0x3FE000
@@ -73,24 +70,12 @@
 #define BOOTLOADER_RBIDX_INITVAL 0
 #endif
 
-#endif
-
 #ifdef CONFIG_IMX_TRUSTY_OS
 #define AVB_RPMB
 #define KEYSLOT_HWPARTITION_ID 2
 #define KEYSLOT_BLKS             0x1FFF
 #define NS_ARCH_ARM64 1
-#endif
 
-#ifdef CONFIG_ID_ATTESTATION
-#define ATTESTATION_ID_BRAND "Android"
-#define ATTESTATION_ID_DEVICE "edm_g_imx8mm"
-#define ATTESTATION_ID_MANUFACTURER "TECHNEXION"
-#define ATTESTATION_ID_MODEL "EDM_G_IMX8MM"
-#ifdef CONFIG_ATTESTATION_ID_PRODUCT
-#undef CONFIG_ATTESTATION_ID_PRODUCT
-#endif
-#define CONFIG_ATTESTATION_ID_PRODUCT "edm_g_imx8mm"
 #endif
 
 /* Enable CONFIG_IMX8M_1G_MEMORY  to config 1GB ddr */
