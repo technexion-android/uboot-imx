@@ -107,11 +107,10 @@ static dev_setup_t _dev_setup_edm_g_8mm[] = {
 #if(defined(CONFIG_TARGET_PICO_IMX8MM))
 static dev_setup_t _dev_setup_pico_8mm[] = {
 	{ DEV_SETUP_VOUT, "ili9881c", NULL },
-	{ DEV_SETUP_VIN, "tevi-ov5640", NULL },
 };
 
 static dev_setup_t _dev_setup_pico_8mm_pi[] = {
-	{ DEV_SETUP_VIN, "tevi-ap1302", "ar0144" },
+	{ DEV_SETUP_VIN, "tevs", "ar0144" },
 };
 
 static dev_setup_t _dev_setup_pico_8mm_wizard[] = {
