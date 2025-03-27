@@ -81,7 +81,7 @@ static dev_setup_t _dev_setup_pico_8mm[] = {
 };
 
 static dev_setup_t _dev_setup_pico_8mm_pi[] = {
-	{ DEV_SETUP_VIN, "tevs", "ar0144" },
+	{ DEV_SETUP_VIN, "tevs", "ar0144-or90" },
 };
 
 static dev_setup_t _dev_setup_pico_8mm_wizard[] = {
