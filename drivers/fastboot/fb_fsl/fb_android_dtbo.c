@@ -1,7 +1,7 @@
 #include "fb_android_dtbo.h"
 #include <asm/mach-imx/sys_proto.h>
 #include <env.h>
-#include <common.h>
+//#include <common.h>
 #include <image.h>
 
 #define EXT_DTBO_SIZE(t)		(sizeof(t)/sizeof(t[0]))
