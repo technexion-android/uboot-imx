@@ -9,48 +9,7 @@
 
 #define FSL_FASTBOOT_FB_DEV "mmc"
 
-#undef CFG_EXTRA_ENV_SETTINGS
 #undef CONFIG_BOOTCOMMAND
-
-#define CFG_EXTRA_ENV_SETTINGS		\
-	"splashpos=m,m\0"\
-	"splashimage=0x50000000\0"\
-	"fdt_high=0xffffffffffffffff\0"\
-	"initrd_high=0xffffffffffffffff\0"\
-	"emmc_dev=2\0"\
-	"sd_dev=1\0" \
-	"fdtfile=undefined\0"\
-	"cameraautodetect=yes\0"\
-	"bootargs="\
-	"stack_depot_disable=on "\
-	"kasan.stacktrace=off "\
-	"console=ttymxc1,115200 "\
-	"earlycon=ec_imx6q,0x30890000,115200 "\
-	"init=/init "\
-	"firmware_class.path=/vendor/firmware "\
-	"loop.max_part=7 "\
-	"transparent_hugepage=never "\
-	"swiotlb=65536 "\
-	"pci=nomsi "\
-	"cma=480M@0x400M-0xb80M "\
-	"buildvariant=userdebug "\
-	"androidboot.console=ttymxc1 "\
-	"androidboot.hardware=nxp "\
-	"androidboot.hwrotation=0 "\
-	"androidboot.usb.debugging=1 "\
-	"bootconfig "\
-	"\0"
-
-/*
-	"androidboot.primary_display=imx-drm "\
-	"androidboot.vendor.sysrq=1 "\
-	"androidboot.lcd_density=240 "\
-	"androidboot.wificountrycode=TW "\
-	"loglevel=8 "\
-	//"quiet"
-	//"androidboot.selinux=permissive "
-	//"androidboot.camera.layout=${tn_cam}
-*/
 
 /* Enable mcu firmware flash */
 #ifdef CONFIG_FLASH_MCUFIRMWARE_SUPPORT
