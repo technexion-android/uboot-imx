@@ -14,6 +14,18 @@
 // Sync the order of _ext_dtbo with BoardConfig.mk
 //
 
+#if(defined(CONFIG_TARGET_EDM_IMX95))
+static dev_setup_t _dev_setup_edm_imx95[] = {
+	{ DEV_SETUP_VOUT, "lvds-vl10112880", NULL },
+	{ DEV_SETUP_VOUT, "lvds-vl156192108", NULL },
+	{ DEV_SETUP_VOUT, "mipi2hdmi-adv7535", NULL },
+	{ DEV_SETUP_VIN, "tevs", NULL },
+	{ DEV_SETUP_VIN, "tevs-csi1", NULL },
+	{ DEV_SETUP_VIN, "fusion-lvds-vl10112880", NULL },
+	{ DEV_SETUP_VIN, "fusion-lvds-vl156192108", NULL },
+};
+#endif
+
 #if(defined(CONFIG_TARGET_AXON_IMX8MP))
 static dev_setup_t _dev_setup_axon_8mp[] = {
 	{ DEV_SETUP_VOUT, "lvds-vl10112880", NULL },
@@ -98,7 +110,12 @@ static  int _get_dev_setup(const char *dtbo_token, dev_setup_t *dev_setup, size_
 		goto _exit_get_dtbo_index;
 	}
 
-	if(is_imx8mp()) {
+	if(is_imx95()) {
+#if(defined(CONFIG_TARGET_EDM_IMX95))
+		__dev_setup = _dev_setup_edm_imx95;
+		__dev_setup_cnt = EXT_DTBO_SIZE(_dev_setup_edm_imx95);
+#endif
+	} else if(is_imx8mp()) {
 #if(defined(CONFIG_TARGET_AXON_IMX8MP))
 		__dev_setup = _dev_setup_axon_8mp;
 		__dev_setup_cnt = EXT_DTBO_SIZE(_dev_setup_axon_8mp);
