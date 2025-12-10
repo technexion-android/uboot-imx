@@ -19,10 +19,10 @@ static dev_setup_t _dev_setup_edm_imx95[] = {
 	{ DEV_SETUP_VOUT, "lvds-vl10112880", NULL },
 	{ DEV_SETUP_VOUT, "lvds-vl156192108", NULL },
 	{ DEV_SETUP_VOUT, "mipi2hdmi-adv7535", NULL },
-	{ DEV_SETUP_VIN, "tevs", "tevs" },
+	{ DEV_SETUP_VIN, "tevs-csi0", "tevs" },
 	{ DEV_SETUP_VIN, "tevs-csi1", "tevs" },
-	{ DEV_SETUP_VIN, "fusion-lvds-vl10112880", NULL },
-	{ DEV_SETUP_VIN, "fusion-lvds-vl156192108", NULL },
+	{ DEV_SETUP_VIN, "vls-gm2-csi0", "tevs" },
+	{ DEV_SETUP_VIN, "vls-gm2-csi1", "tevs" },
 };
 #endif
 
