@@ -225,7 +225,7 @@ int _add_dt_overlay(struct dt_table_header *dt_img, const u32 fdt_addr) {
 	dev_setup_t dev_setup;
 	u32 fdt_overlay_size = 0;
 	int ret = -1;
-	char dtoverlay[32];
+	char dtoverlay[128];
 	char *dtoverlay_ptr = NULL, *dtbo_token = NULL;
 	//u8 dt_entry_cnt = be32_to_cpu(dt_img->dt_entry_count);
 	u32 dt_entry_size = be32_to_cpu(dt_img->dt_entry_size);
