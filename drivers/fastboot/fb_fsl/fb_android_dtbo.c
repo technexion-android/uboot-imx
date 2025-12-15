@@ -80,8 +80,8 @@ static dev_setup_t _dev_setup_edm_g_8mm[] = {
 	{ DEV_SETUP_VOUT, "sn65dsi84-vl15613676", NULL },
 	{ DEV_SETUP_VOUT, "sn65dsi84-vl215192108", NULL },
 	{ DEV_SETUP_VIN, "hdmi2mipi-tc358743", NULL },
-	{ DEV_SETUP_VIN, "tevs", "ar0144" },
-	{ DEV_SETUP_VIN, "vls", "ar0144" },
+	{ DEV_SETUP_VIN, "tevs", "tevs" },
+	{ DEV_SETUP_VIN, "vls", "tevs" },
 };
 #endif
 
