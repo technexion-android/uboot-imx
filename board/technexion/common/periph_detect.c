@@ -119,6 +119,7 @@ __weak int detect_exc3000_i2c(struct tn_display const *dev)
 	msg_vendor_req.buf = i2c_buf_vendor_req;
 
 	tn_debug("Detect func: %s, for overlay: %s\n", __func__, dev->ov_name);
+	mdelay(20);
 	udev = _check_i2c_dev(dev->bus, dev->addr);
 	if (udev != NULL) {
 		// clear read_frame
