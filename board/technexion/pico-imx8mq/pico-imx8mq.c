@@ -82,8 +82,8 @@ int board_phys_sdram_size(phys_size_t *size)
 	case 0x4: /* DRAM size: 4GB */
 		*size = SZ_4G;
 		break;
-	case 0x3: /* DRAM size: 3GB */
-		*size = SZ_3G;
+	case 0x3: /* DRAM size: 4GB(1Rank) */
+		*size = SZ_4G;
 		break;
 	case 0x2: /* DRAM size: 2GB */
 		*size = SZ_2G;

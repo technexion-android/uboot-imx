@@ -31,6 +31,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+extern struct dram_timing_info dram_timing_4gb_1rank;
 extern struct dram_timing_info dram_timing_2gb_b1;
 extern struct dram_timing_info dram_timing_2gb;
 
@@ -104,6 +105,10 @@ void spl_dram_init(void)
 			ddr_init(&dram_timing_2gb);
 		}
 		writel(0x4, MCU_BOOTROM_BASE_ADDR);
+	} else if (!gpio_get_value(DDR_DET_1) && gpio_get_value(DDR_DET_2) && !gpio_get_value(DDR_DET_3)) {
+		puts("dram_init: LPDDR4(K) 4GB\n");
+		ddr_init(&dram_timing_4gb_1rank);
+		writel(0x3, MCU_BOOTROM_BASE_ADDR);
 	} else if (gpio_get_value(DDR_DET_1) && gpio_get_value(DDR_DET_2) && !gpio_get_value(DDR_DET_3)) {
 		puts("dram_init: LPDDR4 2GB\n");
 		if (soc_rev() >= CHIP_REV_2_1) {

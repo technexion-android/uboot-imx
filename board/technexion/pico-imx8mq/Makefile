@@ -12,5 +12,5 @@ obj-y += pico-imx8mq_spl.o
 # For silicon rev.B0: LPDDR4 1/2/4 GB (667 MTS DDR train)
 # For silicon rev.B1: LPDDR4 1/2/4 GB (100/400 MTS DDR train)
 # The LPDDR timing tweak for 1/4 GB is in 'board/technexion/pico-imx8mq/pico-imx8mq_spl.c'
-obj-$(CONFIG_IMX8M_LPDDR4) += lpddr4_timing_2gb.o lpddr4_timing_2gb_b1.o
+obj-$(CONFIG_IMX8M_LPDDR4) += lpddr4_timing_2gb.o lpddr4_timing_2gb_b1.o lpddr4_timing_4gb_1rank.o
 endif
